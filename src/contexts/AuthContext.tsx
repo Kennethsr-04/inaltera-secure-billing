@@ -23,6 +23,16 @@ export function useAuth() {
   return ctx;
 }
 
+function getRegisteredUsers(): Record<string, string> {
+  try {
+    return JSON.parse(localStorage.getItem("inaltera_registered_users") || "{}");
+  } catch { return {}; }
+}
+
+function saveRegisteredUsers(users: Record<string, string>) {
+  localStorage.setItem("inaltera_registered_users", JSON.stringify(users));
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -38,10 +48,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = useCallback(async (email: string, _password: string) => {
-    // Mock login - replace with real API call when available
-    // try { const res = await api.post('/auth/login', { email, password }, { skipAuth: true }); }
+  const login = useCallback(async (email: string, password: string) => {
     await new Promise((r) => setTimeout(r, 800));
+    const users = getRegisteredUsers();
+    if (!users[email]) {
+      throw new Error("Este email no está registrado. Por favor, crea una cuenta primero.");
+    }
+    if (users[email] !== password) {
+      throw new Error("Contraseña incorrecta.");
+    }
     const mockToken = "mock_token_" + Date.now();
     const mockUser = { email };
     localStorage.setItem("inaltera_token", mockToken);
@@ -50,8 +65,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(mockUser);
   }, []);
 
-  const register = useCallback(async (email: string, _password: string) => {
+  const register = useCallback(async (email: string, password: string) => {
     await new Promise((r) => setTimeout(r, 800));
+    const users = getRegisteredUsers();
+    if (users[email]) {
+      throw new Error("Este email ya está registrado. Inicia sesión.");
+    }
+    users[email] = password;
+    saveRegisteredUsers(users);
     const mockToken = "mock_token_" + Date.now();
     const mockUser = { email };
     localStorage.setItem("inaltera_token", mockToken);
