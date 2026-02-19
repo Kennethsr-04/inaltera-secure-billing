@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { FilePlus, Upload, Plus, Trash2, FileUp } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { FilePlus, Upload, Plus, Trash2, FileUp, Download } from "lucide-react";
 import { toast } from "sonner";
+import { QRCodeSVG } from "qrcode.react";
 import { mockClientes, mockProductos } from "@/lib/mock-data";
 
 interface LineaFactura {
@@ -48,6 +50,9 @@ export default function Facturacion() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [subiendo, setSubiendo] = useState(false);
+
+  // QR state
+  const [qrData, setQrData] = useState<{ id: string; url: string } | null>(null);
 
   const addLinea = () => setLineas([...lineas, emptyLinea()]);
   const removeLinea = (id: string) => {
@@ -108,7 +113,10 @@ export default function Facturacion() {
     try {
       // await api.post('/factura/emitir', { clienteId, tipoFactura, regimenIva, lineas, observaciones });
       await new Promise((r) => setTimeout(r, 1200));
-      toast.success("Factura generada y sellada correctamente. ID: F-2026/004");
+      const facturaId = `F-2026/${String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0")}`;
+      const trackingUrl = `${window.location.origin}/factura/verificar/${crypto.randomUUID()}`;
+      setQrData({ id: facturaId, url: trackingUrl });
+      toast.success(`Factura generada y sellada correctamente. ID: ${facturaId}`);
       // Reset form
       setClienteId("");
       setLineas([emptyLinea()]);
@@ -148,6 +156,9 @@ export default function Facturacion() {
       // formData.append('file', pdfFile);
       // await api.postFormData('/factura/cargar_pdf', formData);
       await new Promise((r) => setTimeout(r, 1500));
+      const facturaId = `EXT-2026/${String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0")}`;
+      const trackingUrl = `${window.location.origin}/factura/verificar/${crypto.randomUUID()}`;
+      setQrData({ id: facturaId, url: trackingUrl });
       toast.success("PDF cargado y sellado con QR correctamente");
       setPdfFile(null);
     } catch {
@@ -509,6 +520,49 @@ export default function Facturacion() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* QR Dialog */}
+      <Dialog open={!!qrData} onOpenChange={(open) => !open && setQrData(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>QR de Trazabilidad</DialogTitle>
+            <DialogDescription>
+              Factura {qrData?.id} — Escanea el código para verificar
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="bg-white p-4 rounded-lg" id="qr-container">
+              <QRCodeSVG
+                value={qrData?.url ?? ""}
+                size={200}
+                level="H"
+                includeMargin
+              />
+            </div>
+            <p className="text-xs text-muted-foreground text-center break-all max-w-[300px]">
+              {qrData?.url}
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const svg = document.querySelector("#qr-container svg");
+                if (!svg) return;
+                const svgData = new XMLSerializer().serializeToString(svg);
+                const blob = new Blob([svgData], { type: "image/svg+xml" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `qr-${qrData?.id}.svg`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+            >
+              <Download className="h-4 w-4 mr-2" /> Descargar QR
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
