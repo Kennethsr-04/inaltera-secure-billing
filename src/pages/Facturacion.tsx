@@ -8,10 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { FilePlus, Upload, Plus, Trash2, FileUp, Download } from "lucide-react";
+import { FilePlus, Upload, Plus, Trash2, FileUp, Download, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import { mockClientes, mockProductos } from "@/lib/mock-data";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface LineaFactura {
   id: string;
@@ -37,7 +39,16 @@ const emptyLinea = (): LineaFactura => ({
   recargoEquivalencia: 0,
 });
 
+interface QrResultData {
+  id: string;
+  verifactuUrl: string;
+  huella: string;
+  pdfBase64: string;
+}
+
 export default function Facturacion() {
+  const { token } = useAuth();
+
   // Factura form state
   const [clienteId, setClienteId] = useState("");
   const [tipoFactura, setTipoFactura] = useState("completa");
@@ -51,8 +62,8 @@ export default function Facturacion() {
   const [dragOver, setDragOver] = useState(false);
   const [subiendo, setSubiendo] = useState(false);
 
-  // QR state
-  const [qrData, setQrData] = useState<{ id: string; url: string } | null>(null);
+  // QR result state
+  const [qrResult, setQrResult] = useState<QrResultData | null>(null);
 
   const addLinea = () => setLineas([...lineas, emptyLinea()]);
   const removeLinea = (id: string) => {
@@ -111,18 +122,48 @@ export default function Facturacion() {
     }
     setEmitiendo(true);
     try {
-      // await api.post('/factura/emitir', { clienteId, tipoFactura, regimenIva, lineas, observaciones });
-      await new Promise((r) => setTimeout(r, 1200));
-      const facturaId = `F-2026/${String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0")}`;
-      const trackingUrl = `${window.location.origin}/factura/verificar/${crypto.randomUUID()}`;
-      setQrData({ id: facturaId, url: trackingUrl });
-      toast.success(`Factura generada y sellada correctamente. ID: ${facturaId}`);
-      // Reset form
+      const cliente = mockClientes.find((c) => c.id === clienteId);
+      if (!cliente) throw new Error("Cliente no encontrado");
+
+      const { data, error } = await supabase.functions.invoke("generar-factura-pdf", {
+        body: {
+          clienteId,
+          clienteNombre: cliente.nombre,
+          clienteNif: cliente.nif,
+          clienteDireccion: cliente.direccion,
+          tipoFactura,
+          regimenIva,
+          lineas: lineas.map((l) => ({
+            descripcion: l.descripcion,
+            cantidad: l.cantidad,
+            precioUnitario: l.precioUnitario,
+            descuento: l.descuento,
+            tipoIva: l.tipoIva,
+            irpf: l.irpf,
+            recargoEquivalencia: l.recargoEquivalencia,
+          })),
+          observaciones,
+          emisorNombre: "",
+          emisorNif: "",
+          emisorDireccion: "",
+        },
+      });
+
+      if (error) throw error;
+
+      setQrResult({
+        id: data.id,
+        verifactuUrl: data.verifactuUrl,
+        huella: data.huella,
+        pdfBase64: data.pdfBase64,
+      });
+
+      toast.success(`Factura ${data.id} generada con QR VeriFactu`);
       setClienteId("");
       setLineas([emptyLinea()]);
       setObservaciones("");
-    } catch {
-      toast.error("Error al generar la factura");
+    } catch (err: any) {
+      toast.error(err.message || "Error al generar la factura");
     } finally {
       setEmitiendo(false);
     }
@@ -152,14 +193,12 @@ export default function Facturacion() {
     if (!pdfFile) return;
     setSubiendo(true);
     try {
-      // const formData = new FormData();
-      // formData.append('file', pdfFile);
-      // await api.postFormData('/factura/cargar_pdf', formData);
+      // TODO: implement PDF upload edge function with QR overlay
       await new Promise((r) => setTimeout(r, 1500));
       const facturaId = `EXT-2026/${String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0")}`;
-      const trackingUrl = `${window.location.origin}/factura/verificar/${crypto.randomUUID()}`;
-      setQrData({ id: facturaId, url: trackingUrl });
-      toast.success("PDF cargado y sellado con QR correctamente");
+      const verifactuUrl = `https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR?nif=EXT&numserie=${facturaId}`;
+      setQrResult({ id: facturaId, verifactuUrl, huella: "PENDIENTE", pdfBase64: "" });
+      toast.success("PDF cargado y sellado con QR VeriFactu");
       setPdfFile(null);
     } catch {
       toast.error("Error al cargar el PDF");
@@ -168,11 +207,25 @@ export default function Facturacion() {
     }
   };
 
+  const downloadPdf = () => {
+    if (!qrResult?.pdfBase64) return;
+    const binary = atob(qrResult.pdfBase64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `factura-${qrResult.id.replace(/\//g, "-")}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-display font-bold text-foreground">Facturación y Carga</h1>
-        <p className="text-muted-foreground">Crea facturas o carga PDFs de terceros para sellar</p>
+        <p className="text-muted-foreground">Crea facturas o carga PDFs de terceros para sellar con QR VeriFactu</p>
       </div>
 
       <Tabs defaultValue="elaborar" className="space-y-4">
@@ -440,7 +493,7 @@ export default function Facturacion() {
                     onClick={handleEmitir}
                     disabled={emitiendo}
                   >
-                    {emitiendo ? "Generando y sellando..." : "Generar y Sellar Factura"}
+                    {emitiendo ? "Generando PDF con QR VeriFactu..." : "Generar Factura con QR VeriFactu"}
                   </Button>
                 </CardContent>
               </Card>
@@ -453,7 +506,7 @@ export default function Facturacion() {
             <CardHeader>
               <CardTitle>Cargar Factura de Terceros</CardTitle>
               <CardDescription>
-                Sube un PDF de factura para sellarlo con código QR de trazabilidad
+                Sube un PDF de factura para sellarlo con código QR VeriFactu de trazabilidad
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -514,52 +567,62 @@ export default function Facturacion() {
                 disabled={!pdfFile || subiendo}
                 onClick={handleSubirPdf}
               >
-                {subiendo ? "Cargando y sellando..." : "Cargar y Sellar PDF"}
+                {subiendo ? "Cargando y sellando..." : "Cargar y Sellar con QR VeriFactu"}
               </Button>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
-      {/* QR Dialog */}
-      <Dialog open={!!qrData} onOpenChange={(open) => !open && setQrData(null)}>
-        <DialogContent className="sm:max-w-md">
+      {/* QR VeriFactu Result Dialog */}
+      <Dialog open={!!qrResult} onOpenChange={(open) => !open && setQrResult(null)}>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>QR de Trazabilidad</DialogTitle>
+            <DialogTitle>QR VeriFactu — Factura {qrResult?.id}</DialogTitle>
             <DialogDescription>
-              Factura {qrData?.id} — Escanea el código para verificar
+              Código QR tributario según especificaciones de la Agencia Tributaria
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-4">
-            <div className="bg-white p-4 rounded-lg" id="qr-container">
+            <div className="bg-white p-4 rounded-lg border" id="qr-container">
               <QRCodeSVG
-                value={qrData?.url ?? ""}
+                value={qrResult?.verifactuUrl ?? ""}
                 size={200}
                 level="H"
                 includeMargin
               />
             </div>
-            <p className="text-xs text-muted-foreground text-center break-all max-w-[300px]">
-              {qrData?.url}
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const svg = document.querySelector("#qr-container svg");
-                if (!svg) return;
-                const svgData = new XMLSerializer().serializeToString(svg);
-                const blob = new Blob([svgData], { type: "image/svg+xml" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `qr-${qrData?.id}.svg`;
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-            >
-              <Download className="h-4 w-4 mr-2" /> Descargar QR
-            </Button>
+            <div className="text-center space-y-1">
+              <p className="text-xs font-medium text-muted-foreground">Huella: {qrResult?.huella}</p>
+              <p className="text-xs text-muted-foreground break-all max-w-[400px]">
+                {qrResult?.verifactuUrl}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const svg = document.querySelector("#qr-container svg");
+                  if (!svg) return;
+                  const svgData = new XMLSerializer().serializeToString(svg);
+                  const blob = new Blob([svgData], { type: "image/svg+xml" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `qr-verifactu-${qrResult?.id?.replace(/\//g, "-")}.svg`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" /> Descargar QR
+              </Button>
+              {qrResult?.pdfBase64 && (
+                <Button size="sm" onClick={downloadPdf}>
+                  <FileText className="h-4 w-4 mr-2" /> Descargar PDF
+                </Button>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

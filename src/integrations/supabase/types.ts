@@ -14,7 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      facturas: {
+        Row: {
+          base_imponible: number
+          cliente_direccion: string | null
+          cliente_nif: string
+          cliente_nombre: string
+          created_at: string
+          estado: string
+          huella_hash: string | null
+          id: string
+          lineas: Json
+          numero_factura: string
+          observaciones: string | null
+          origen: string
+          pdf_path: string | null
+          qr_url: string | null
+          regimen_iva: string
+          tipo: string
+          total: number
+          total_irpf: number
+          total_iva: number
+          total_recargo: number
+          user_id: string
+          verifactu_url: string | null
+        }
+        Insert: {
+          base_imponible?: number
+          cliente_direccion?: string | null
+          cliente_nif: string
+          cliente_nombre: string
+          created_at?: string
+          estado?: string
+          huella_hash?: string | null
+          id?: string
+          lineas?: Json
+          numero_factura: string
+          observaciones?: string | null
+          origen?: string
+          pdf_path?: string | null
+          qr_url?: string | null
+          regimen_iva?: string
+          tipo?: string
+          total?: number
+          total_irpf?: number
+          total_iva?: number
+          total_recargo?: number
+          user_id: string
+          verifactu_url?: string | null
+        }
+        Update: {
+          base_imponible?: number
+          cliente_direccion?: string | null
+          cliente_nif?: string
+          cliente_nombre?: string
+          created_at?: string
+          estado?: string
+          huella_hash?: string | null
+          id?: string
+          lineas?: Json
+          numero_factura?: string
+          observaciones?: string | null
+          origen?: string
+          pdf_path?: string | null
+          qr_url?: string | null
+          regimen_iva?: string
+          tipo?: string
+          total?: number
+          total_irpf?: number
+          total_iva?: number
+          total_recargo?: number
+          user_id?: string
+          verifactu_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
