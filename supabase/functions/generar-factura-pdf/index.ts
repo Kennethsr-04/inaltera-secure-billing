@@ -27,7 +27,6 @@ interface FacturaPayload {
   regimenIva: string;
   lineas: LineaFactura[];
   observaciones: string;
-  // Emisor data
   emisorNombre: string;
   emisorNif: string;
   emisorDireccion: string;
@@ -51,19 +50,15 @@ function generarNumeroFactura(): string {
   return `F-${year}/${seq}`;
 }
 
-function generarHuellaHash(data: string): string {
-  // Simplified hash for demo - in production use SHA-256 via crypto.subtle
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    const char = data.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash |= 0;
-  }
-  return Math.abs(hash).toString(16).toUpperCase().padStart(16, "0");
+async function generarHuellaSHA256(data: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(data);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", dataBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
 
-function generarVerifactuUrl(nif: string, numero: string, fecha: string, importe: string, huella: string): string {
-  // URL VeriFactu de la Agencia Tributaria
+function generarQrUrl(nif: string, numero: string, fecha: string, importe: string, huella: string): string {
   return `https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR?nif=${encodeURIComponent(nif)}&numserie=${encodeURIComponent(numero)}&fecha=${encodeURIComponent(fecha)}&importe=${encodeURIComponent(importe)}&huella=${encodeURIComponent(huella)}`;
 }
 
@@ -82,7 +77,6 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get user from token
     const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!);
     const { data: { user }, error: authError } = await anonClient.auth.getUser(authHeader.replace("Bearer ", ""));
     if (authError || !user) {
@@ -95,12 +89,12 @@ Deno.serve(async (req) => {
     const fechaEmision = new Date();
     const fechaStr = `${String(fechaEmision.getDate()).padStart(2, "0")}-${String(fechaEmision.getMonth() + 1).padStart(2, "0")}-${fechaEmision.getFullYear()}`;
 
-    // Generate huella hash for VeriFactu
+    // Generate SHA-256 hash
     const huellaData = `${payload.emisorNif}|${numeroFactura}|${fechaStr}|${totales.total.toFixed(2)}`;
-    const huella = generarHuellaHash(huellaData);
+    const huella = await generarHuellaSHA256(huellaData);
 
-    // Generate VeriFactu URL
-    const verifactuUrl = generarVerifactuUrl(
+    // Generate QR URL (AEAT format)
+    const qrUrl = generarQrUrl(
       payload.emisorNif || "B00000000",
       numeroFactura,
       fechaStr,
@@ -109,7 +103,7 @@ Deno.serve(async (req) => {
     );
 
     // Generate QR code as PNG data URL
-    const qrDataUrl = await QRCode.toDataURL(verifactuUrl, {
+    const qrDataUrl = await QRCode.toDataURL(qrUrl, {
       errorCorrectionLevel: "H",
       margin: 1,
       width: 150,
@@ -117,7 +111,7 @@ Deno.serve(async (req) => {
 
     // Build PDF
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595.28, 841.89]); // A4
+    const page = pdfDoc.addPage([595.28, 841.89]);
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const { width, height } = page.getSize();
@@ -208,13 +202,13 @@ Deno.serve(async (req) => {
 
     page.drawImage(qrImage, { x: qrX, y: qrY, width: qrSize, height: qrSize });
 
-    // VeriFactu label below QR
-    page.drawText("VeriFactu", { x: qrX + 25, y: qrY - 12, font: fontBold, size: 8, color: rgb(0.15, 0.4, 0.7) });
-    page.drawText("Código QR tributario", { x: qrX + 10, y: qrY - 22, font, size: 6, color: rgb(0.5, 0.5, 0.5) });
+    // QR label
+    page.drawText("QR Tributario", { x: qrX + 18, y: qrY - 12, font: fontBold, size: 8, color: rgb(0.15, 0.4, 0.7) });
+    page.drawText("Código QR de verificación", { x: qrX + 5, y: qrY - 22, font, size: 6, color: rgb(0.5, 0.5, 0.5) });
 
     // Huella hash at bottom left
-    page.drawText(`Huella: ${huella}`, { x: margin, y: margin, font, size: 6, color: rgb(0.6, 0.6, 0.6) });
-    page.drawText(`Sistema VeriFactu - Agencia Tributaria`, { x: margin, y: margin - 10, font, size: 6, color: rgb(0.6, 0.6, 0.6) });
+    page.drawText(`Huella SHA-256: ${huella.substring(0, 32)}...`, { x: margin, y: margin, font, size: 6, color: rgb(0.6, 0.6, 0.6) });
+    page.drawText(`Factura electrónica verificable`, { x: margin, y: margin - 10, font, size: 6, color: rgb(0.6, 0.6, 0.6) });
 
     const pdfBytes = await pdfDoc.save();
 
@@ -246,8 +240,8 @@ Deno.serve(async (req) => {
       total_recargo: totales.totalRecargo,
       total: totales.total,
       huella_hash: huella,
-      qr_url: verifactuUrl,
-      verifactu_url: verifactuUrl,
+      qr_url: qrUrl,
+      verifactu_url: qrUrl,
       pdf_path: pdfPath,
     });
 
@@ -261,7 +255,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         id: numeroFactura,
-        verifactuUrl,
+        qrUrl,
         huella,
         pdfBase64: base64Pdf,
         pdfPath,

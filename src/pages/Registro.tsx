@@ -98,10 +98,10 @@ export default function RegistroFacturas() {
         total_recargo: factura.total_recargo,
         total: factura.total,
       },
-      verifactu: {
+      verificacion: {
         huella_hash: factura.huella_hash,
+        algoritmo: "SHA-256",
         qr_url: factura.qr_url,
-        verifactu_url: factura.verifactu_url,
       },
       estado: factura.estado,
     };
@@ -118,7 +118,7 @@ export default function RegistroFacturas() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-display font-bold text-foreground">Registro de Facturas</h1>
-        <p className="text-muted-foreground">Consulta y descarga tus facturas selladas con QR VeriFactu</p>
+        <p className="text-muted-foreground">Consulta y descarga tus facturas selladas con QR tributario</p>
       </div>
 
       {/* Filters */}
@@ -194,7 +194,7 @@ export default function RegistroFacturas() {
                     <TableHead>Número</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead className="text-right">Total (€)</TableHead>
-                    <TableHead>QR VeriFactu</TableHead>
+                    <TableHead>QR Tributario</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
@@ -273,9 +273,9 @@ export default function RegistroFacturas() {
       <Dialog open={!!selectedQr} onOpenChange={(open) => !open && setSelectedQr(null)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>QR VeriFactu — {selectedQr?.numero_factura}</DialogTitle>
+            <DialogTitle>QR Tributario — {selectedQr?.numero_factura}</DialogTitle>
             <DialogDescription>
-              Código QR tributario según especificaciones de la Agencia Tributaria
+              Código QR de verificación fiscal con huella SHA-256
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-4">
@@ -295,7 +295,7 @@ export default function RegistroFacturas() {
                 Huella: {selectedQr?.huella_hash ?? "—"}
               </p>
               <p className="text-xs text-muted-foreground break-all max-w-[400px]">
-                {selectedQr?.verifactu_url}
+                {selectedQr?.qr_url}
               </p>
             </div>
             <div className="flex gap-2">
@@ -310,7 +310,7 @@ export default function RegistroFacturas() {
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement("a");
                   a.href = url;
-                  a.download = `qr-verifactu-${selectedQr?.numero_factura?.replace(/\//g, "-")}.svg`;
+                  a.download = `qr-tributario-${selectedQr?.numero_factura?.replace(/\//g, "-")}.svg`;
                   a.click();
                   URL.revokeObjectURL(url);
                 }}
