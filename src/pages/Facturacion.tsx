@@ -41,7 +41,7 @@ const emptyLinea = (): LineaFactura => ({
 
 interface QrResultData {
   id: string;
-  verifactuUrl: string;
+  qrUrl: string;
   huella: string;
   pdfBase64: string;
 }
@@ -153,12 +153,12 @@ export default function Facturacion() {
 
       setQrResult({
         id: data.id,
-        verifactuUrl: data.verifactuUrl,
+        qrUrl: data.qrUrl,
         huella: data.huella,
         pdfBase64: data.pdfBase64,
       });
 
-      toast.success(`Factura ${data.id} generada con QR VeriFactu`);
+      toast.success(`Factura ${data.id} generada con QR tributario`);
       setClienteId("");
       setLineas([emptyLinea()]);
       setObservaciones("");
@@ -196,9 +196,9 @@ export default function Facturacion() {
       // TODO: implement PDF upload edge function with QR overlay
       await new Promise((r) => setTimeout(r, 1500));
       const facturaId = `EXT-2026/${String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0")}`;
-      const verifactuUrl = `https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR?nif=EXT&numserie=${facturaId}`;
-      setQrResult({ id: facturaId, verifactuUrl, huella: "PENDIENTE", pdfBase64: "" });
-      toast.success("PDF cargado y sellado con QR VeriFactu");
+      const qrUrl = `https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR?nif=EXT&numserie=${facturaId}`;
+      setQrResult({ id: facturaId, qrUrl, huella: "PENDIENTE", pdfBase64: "" });
+      toast.success("PDF cargado y sellado con QR tributario");
       setPdfFile(null);
     } catch {
       toast.error("Error al cargar el PDF");
@@ -225,7 +225,7 @@ export default function Facturacion() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-display font-bold text-foreground">Facturación y Carga</h1>
-        <p className="text-muted-foreground">Crea facturas o carga PDFs de terceros para sellar con QR VeriFactu</p>
+        <p className="text-muted-foreground">Crea facturas o carga PDFs de terceros para sellar con QR tributario</p>
       </div>
 
       <Tabs defaultValue="elaborar" className="space-y-4">
@@ -493,7 +493,7 @@ export default function Facturacion() {
                     onClick={handleEmitir}
                     disabled={emitiendo}
                   >
-                    {emitiendo ? "Generando PDF con QR VeriFactu..." : "Generar Factura con QR VeriFactu"}
+                    {emitiendo ? "Generando PDF con QR tributario..." : "Generar Factura con QR Tributario"}
                   </Button>
                 </CardContent>
               </Card>
@@ -506,7 +506,7 @@ export default function Facturacion() {
             <CardHeader>
               <CardTitle>Cargar Factura de Terceros</CardTitle>
               <CardDescription>
-                Sube un PDF de factura para sellarlo con código QR VeriFactu de trazabilidad
+                Sube un PDF de factura para sellarlo con código QR tributario de trazabilidad
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -567,7 +567,7 @@ export default function Facturacion() {
                 disabled={!pdfFile || subiendo}
                 onClick={handleSubirPdf}
               >
-                {subiendo ? "Cargando y sellando..." : "Cargar y Sellar con QR VeriFactu"}
+                {subiendo ? "Cargando y sellando..." : "Cargar y Sellar con QR Tributario"}
               </Button>
             </CardContent>
           </Card>
@@ -578,15 +578,15 @@ export default function Facturacion() {
       <Dialog open={!!qrResult} onOpenChange={(open) => !open && setQrResult(null)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>QR VeriFactu — Factura {qrResult?.id}</DialogTitle>
+            <DialogTitle>QR Tributario — Factura {qrResult?.id}</DialogTitle>
             <DialogDescription>
-              Código QR tributario según especificaciones de la Agencia Tributaria
+              Código QR de verificación fiscal con huella SHA-256
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center gap-4 py-4">
             <div className="bg-white p-4 rounded-lg border" id="qr-container">
               <QRCodeSVG
-                value={qrResult?.verifactuUrl ?? ""}
+                value={qrResult?.qrUrl ?? ""}
                 size={200}
                 level="H"
                 includeMargin
@@ -595,7 +595,7 @@ export default function Facturacion() {
             <div className="text-center space-y-1">
               <p className="text-xs font-medium text-muted-foreground">Huella: {qrResult?.huella}</p>
               <p className="text-xs text-muted-foreground break-all max-w-[400px]">
-                {qrResult?.verifactuUrl}
+                {qrResult?.qrUrl}
               </p>
             </div>
             <div className="flex gap-2">
@@ -610,7 +610,7 @@ export default function Facturacion() {
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement("a");
                   a.href = url;
-                  a.download = `qr-verifactu-${qrResult?.id?.replace(/\//g, "-")}.svg`;
+                  a.download = `qr-tributario-${qrResult?.id?.replace(/\//g, "-")}.svg`;
                   a.click();
                   URL.revokeObjectURL(url);
                 }}
