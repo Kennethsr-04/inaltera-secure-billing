@@ -1,49 +1,124 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
-import { Search, Download, FileText, FileCode, CalendarIcon } from "lucide-react";
+import { Search, Download, FileText, FileCode, CalendarIcon, QrCode, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { mockFacturas } from "@/lib/mock-data";
+import { QRCodeSVG } from "qrcode.react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Factura = Tables<"facturas">;
 
 export default function RegistroFacturas() {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
+  const [facturas, setFacturas] = useState<Factura[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedQr, setSelectedQr] = useState<Factura | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchFacturas = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("facturas")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) {
+        toast.error("Error al cargar facturas");
+        console.error(error);
+      } else {
+        setFacturas(data || []);
+      }
+      setLoading(false);
+    };
+    fetchFacturas();
+  }, [user]);
 
   const filtered = useMemo(() => {
-    return mockFacturas.filter((f) => {
+    return facturas.filter((f) => {
       const matchSearch =
         !search ||
-        f.numero.toLowerCase().includes(search.toLowerCase()) ||
-        f.cliente.toLowerCase().includes(search.toLowerCase());
-      const matchFrom = !dateFrom || new Date(f.fecha) >= dateFrom;
-      const matchTo = !dateTo || new Date(f.fecha) <= dateTo;
+        f.numero_factura.toLowerCase().includes(search.toLowerCase()) ||
+        f.cliente_nombre.toLowerCase().includes(search.toLowerCase());
+      const fDate = new Date(f.created_at);
+      const matchFrom = !dateFrom || fDate >= dateFrom;
+      const matchTo = !dateTo || fDate <= dateTo;
       return matchSearch && matchFrom && matchTo;
     });
-  }, [search, dateFrom, dateTo]);
+  }, [facturas, search, dateFrom, dateTo]);
 
-  const handleDownloadPdf = (id: string) => {
-    // await api.get(`/registro/${id}/pdf`)
-    console.log("Download PDF:", id);
+  const downloadPdf = async (factura: Factura) => {
+    if (!factura.pdf_path) {
+      toast.error("PDF no disponible");
+      return;
+    }
+    const { data, error } = await supabase.storage
+      .from("facturas-pdf")
+      .download(factura.pdf_path);
+    if (error || !data) {
+      toast.error("Error al descargar el PDF");
+      return;
+    }
+    const url = URL.createObjectURL(data);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `factura-${factura.numero_factura.replace(/\//g, "-")}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
-  const handleDownloadXml = (id: string) => {
-    // await api.get(`/registro/${id}/xml`)
-    console.log("Download XML:", id);
+  const downloadJson = (factura: Factura) => {
+    const registro = {
+      numero_factura: factura.numero_factura,
+      tipo: factura.tipo,
+      origen: factura.origen,
+      fecha: factura.created_at,
+      cliente: {
+        nombre: factura.cliente_nombre,
+        nif: factura.cliente_nif,
+        direccion: factura.cliente_direccion,
+      },
+      importes: {
+        base_imponible: factura.base_imponible,
+        total_iva: factura.total_iva,
+        total_irpf: factura.total_irpf,
+        total_recargo: factura.total_recargo,
+        total: factura.total,
+      },
+      verifactu: {
+        huella_hash: factura.huella_hash,
+        qr_url: factura.qr_url,
+        verifactu_url: factura.verifactu_url,
+      },
+      estado: factura.estado,
+    };
+    const blob = new Blob([JSON.stringify(registro, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `registro-${factura.numero_factura.replace(/\//g, "-")}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-display font-bold text-foreground">Registro de Facturas</h1>
-        <p className="text-muted-foreground">Consulta y descarga tus facturas selladas</p>
+        <p className="text-muted-foreground">Consulta y descarga tus facturas selladas con QR VeriFactu</p>
       </div>
 
       {/* Filters */}
@@ -101,76 +176,156 @@ export default function RegistroFacturas() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">
-            {filtered.length} factura{filtered.length !== 1 ? "s" : ""} encontrada{filtered.length !== 1 ? "s" : ""}
+            {loading ? "Cargando..." : `${filtered.length} factura${filtered.length !== 1 ? "s" : ""} encontrada${filtered.length !== 1 ? "s" : ""}`}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Número</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead className="text-right">Total (€)</TableHead>
-                  <TableHead>Trazabilidad</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((f) => (
-                  <TableRow key={f.id}>
-                    <TableCell className="text-sm">{format(new Date(f.fecha), "dd/MM/yyyy")}</TableCell>
-                    <TableCell>
-                      <Badge variant={f.tipo === "Emitida" ? "default" : "secondary"}>
-                        {f.tipo}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">{f.numero}</TableCell>
-                    <TableCell className="text-sm">{f.cliente}</TableCell>
-                    <TableCell className="text-right font-medium">{f.total.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-success border-success/30">
-                        {f.trazabilidad}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          title="Descargar PDF"
-                          onClick={() => handleDownloadPdf(f.id)}
-                        >
-                          <FileText className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          title="Descargar XML/JSON"
-                          onClick={() => handleDownloadXml(f.id)}
-                        >
-                          <FileCode className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filtered.length === 0 && (
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      No se encontraron facturas
-                    </TableCell>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Número</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead className="text-right">Total (€)</TableHead>
+                    <TableHead>QR VeriFactu</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((f) => (
+                    <TableRow key={f.id}>
+                      <TableCell className="text-sm">{format(new Date(f.created_at), "dd/MM/yyyy")}</TableCell>
+                      <TableCell>
+                        <Badge variant={f.origen === "elaborada" ? "default" : "secondary"}>
+                          {f.origen === "elaborada" ? "Emitida" : "Cargada"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">{f.numero_factura}</TableCell>
+                      <TableCell className="text-sm">{f.cliente_nombre}</TableCell>
+                      <TableCell className="text-right font-medium">{Number(f.total).toFixed(2)}</TableCell>
+                      <TableCell>
+                        {f.verifactu_url ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1.5 text-primary hover:text-primary"
+                            onClick={() => setSelectedQr(f)}
+                          >
+                            <QrCode className="h-4 w-4" />
+                            Ver QR
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-success border-success/30">
+                          {f.estado}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Descargar PDF con QR"
+                            onClick={() => downloadPdf(f)}
+                          >
+                            <FileText className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            title="Descargar registro JSON"
+                            onClick={() => downloadJson(f)}
+                          >
+                            <FileCode className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {filtered.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        No se encontraron facturas
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* QR VeriFactu Detail Dialog */}
+      <Dialog open={!!selectedQr} onOpenChange={(open) => !open && setSelectedQr(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>QR VeriFactu — {selectedQr?.numero_factura}</DialogTitle>
+            <DialogDescription>
+              Código QR tributario según especificaciones de la Agencia Tributaria
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="bg-white p-4 rounded-lg border" id="registro-qr-container">
+              <QRCodeSVG
+                value={selectedQr?.verifactu_url ?? ""}
+                size={200}
+                level="H"
+                includeMargin
+              />
+            </div>
+            <div className="text-center space-y-1">
+              <p className="text-sm font-medium">
+                {selectedQr?.cliente_nombre} — {Number(selectedQr?.total ?? 0).toFixed(2)}€
+              </p>
+              <p className="text-xs font-mono text-muted-foreground">
+                Huella: {selectedQr?.huella_hash ?? "—"}
+              </p>
+              <p className="text-xs text-muted-foreground break-all max-w-[400px]">
+                {selectedQr?.verifactu_url}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const svg = document.querySelector("#registro-qr-container svg");
+                  if (!svg) return;
+                  const svgData = new XMLSerializer().serializeToString(svg);
+                  const blob = new Blob([svgData], { type: "image/svg+xml" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `qr-verifactu-${selectedQr?.numero_factura?.replace(/\//g, "-")}.svg`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" /> Descargar QR
+              </Button>
+              {selectedQr?.pdf_path && (
+                <Button size="sm" onClick={() => selectedQr && downloadPdf(selectedQr)}>
+                  <FileText className="h-4 w-4 mr-2" /> Descargar PDF
+                </Button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
