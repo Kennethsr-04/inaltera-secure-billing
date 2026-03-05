@@ -193,15 +193,43 @@ export default function Facturacion() {
     if (!pdfFile) return;
     setSubiendo(true);
     try {
-      // TODO: implement PDF upload edge function with QR overlay
-      await new Promise((r) => setTimeout(r, 1500));
-      const facturaId = `EXT-2026/${String(Math.floor(Math.random() * 9000) + 1000).padStart(4, "0")}`;
-      const qrUrl = `https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR?nif=EXT&numserie=${facturaId}`;
-      setQrResult({ id: facturaId, qrUrl, huella: "PENDIENTE", pdfBase64: "" });
-      toast.success("PDF cargado y sellado con QR tributario");
+      const formData = new FormData();
+      formData.append("pdf", pdfFile);
+      formData.append("emisorNif", "");
+      formData.append("emisorNombre", "");
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No hay sesión activa");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sellar-pdf-tercero`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Error al sellar el PDF");
+      }
+
+      const data = await response.json();
+
+      setQrResult({
+        id: data.id,
+        qrUrl: data.qrUrl,
+        huella: data.huella,
+        pdfBase64: data.pdfBase64,
+      });
+
+      toast.success(`PDF sellado con QR tributario — ${data.id}`);
       setPdfFile(null);
-    } catch {
-      toast.error("Error al cargar el PDF");
+    } catch (err: any) {
+      toast.error(err.message || "Error al cargar el PDF");
     } finally {
       setSubiendo(false);
     }
