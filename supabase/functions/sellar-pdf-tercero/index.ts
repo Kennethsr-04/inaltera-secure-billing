@@ -57,6 +57,13 @@ Deno.serve(async (req) => {
     const pdfFile = formData.get("pdf") as File | null;
     const emisorNif = (formData.get("emisorNif") as string) || "B00000000";
     const emisorNombre = (formData.get("emisorNombre") as string) || "";
+    const layoutOrientacion = (formData.get("layoutOrientacion") as string) || "vertical";
+    const layoutFooterLibre = formData.get("layoutFooterLibre") === "true";
+    const baseImponible = parseFloat(formData.get("baseImponible") as string) || 0;
+    const totalIva = parseFloat(formData.get("totalIva") as string) || 0;
+    const totalIrpf = parseFloat(formData.get("totalIrpf") as string) || 0;
+    const totalFactura = parseFloat(formData.get("total") as string) || 0;
+    const descripcion = (formData.get("descripcion") as string) || "";
 
     if (!pdfFile) {
       return new Response(JSON.stringify({ error: "No se ha proporcionado un archivo PDF" }), {
@@ -106,11 +113,25 @@ Deno.serve(async (req) => {
     const qrImageBytes = Uint8Array.from(atob(qrDataUrl.split(",")[1]), (c) => c.charCodeAt(0));
     const qrImage = await pdfDoc.embedPng(qrImageBytes);
 
-    // Draw QR overlay on the last page (bottom-right corner)
+    // Smart QR positioning based on layout analysis
     const qrSize = 100;
     const margin = 40;
-    const qrX = width - margin - qrSize;
-    const qrY = margin;
+    let qrX: number;
+    let qrY: number;
+
+    if (layoutOrientacion === "horizontal") {
+      // Landscape: place QR in bottom-left to avoid common right-side content
+      qrX = margin;
+      qrY = margin;
+    } else if (layoutFooterLibre) {
+      // Portrait with free footer: center QR at the bottom
+      qrX = (width - qrSize) / 2;
+      qrY = margin;
+    } else {
+      // Portrait with occupied footer: bottom-right corner (default)
+      qrX = width - margin - qrSize;
+      qrY = margin;
+    }
 
     // White background behind QR
     lastPage.drawRectangle({
@@ -119,7 +140,7 @@ Deno.serve(async (req) => {
       width: qrSize + 16,
       height: qrSize + 50,
       color: rgb(1, 1, 1),
-      opacity: 0.9,
+      opacity: 0.95,
     });
 
     // Draw border
@@ -176,18 +197,19 @@ Deno.serve(async (req) => {
       numero_factura: numeroFactura,
       tipo: "tercero",
       origen: "cargada",
-      cliente_nombre: pdfFile.name.replace(".pdf", ""),
-      cliente_nif: "N/A",
+      cliente_nombre: emisorNombre || pdfFile.name.replace(".pdf", ""),
+      cliente_nif: emisorNif || "N/A",
       regimen_iva: "general",
       lineas: [],
-      base_imponible: 0,
-      total_iva: 0,
-      total_irpf: 0,
+      base_imponible: baseImponible,
+      total_iva: totalIva,
+      total_irpf: totalIrpf,
       total_recargo: 0,
-      total: 0,
+      total: totalFactura,
       huella_hash: huella,
       qr_url: qrUrl,
       pdf_path: pdfPath,
+      observaciones: descripcion || null,
     });
 
     if (dbError) {

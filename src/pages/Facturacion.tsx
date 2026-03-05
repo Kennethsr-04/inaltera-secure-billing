@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { FilePlus, Upload, Plus, Trash2, FileUp, Download, FileText } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { FilePlus, Upload, Plus, Trash2, FileUp, Download, FileText, Brain, CheckCircle, Edit2 } from "lucide-react";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import { mockClientes, mockProductos } from "@/lib/mock-data";
@@ -46,6 +47,22 @@ interface QrResultData {
   pdfBase64: string;
 }
 
+interface ExtractedInvoiceData {
+  emisor_nombre: string;
+  emisor_nif: string;
+  emisor_direccion: string;
+  numero_factura: string;
+  fecha_emision: string;
+  base_imponible: number;
+  total_iva: number;
+  total_irpf: number;
+  total: number;
+  tipo_iva: number;
+  descripcion: string;
+  layout_orientacion: "horizontal" | "vertical";
+  layout_footer_libre: boolean;
+}
+
 export default function Facturacion() {
   const { token } = useAuth();
 
@@ -61,6 +78,9 @@ export default function Facturacion() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [subiendo, setSubiendo] = useState(false);
+  const [extrayendo, setExtrayendo] = useState(false);
+  const [extractedData, setExtractedData] = useState<ExtractedInvoiceData | null>(null);
+  const [uploadStep, setUploadStep] = useState<"upload" | "review" | "sealing">("upload");
 
   // QR result state
   const [qrResult, setQrResult] = useState<QrResultData | null>(null);
@@ -189,14 +209,73 @@ export default function Facturacion() {
     }
   };
 
-  const handleSubirPdf = async () => {
+  const handleExtractData = async () => {
     if (!pdfFile) return;
-    setSubiendo(true);
+    setExtrayendo(true);
     try {
       const formData = new FormData();
       formData.append("pdf", pdfFile);
-      formData.append("emisorNif", "");
-      formData.append("emisorNombre", "");
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("No hay sesión activa");
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extraer-datos-factura`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Error al extraer datos");
+      }
+
+      const data = await response.json();
+      setExtractedData({
+        emisor_nombre: data.extracted.emisor_nombre || "",
+        emisor_nif: data.extracted.emisor_nif || "",
+        emisor_direccion: data.extracted.emisor_direccion || "",
+        numero_factura: data.extracted.numero_factura || "",
+        fecha_emision: data.extracted.fecha_emision || "",
+        base_imponible: data.extracted.base_imponible || 0,
+        total_iva: data.extracted.total_iva || 0,
+        total_irpf: data.extracted.total_irpf || 0,
+        total: data.extracted.total || 0,
+        tipo_iva: data.extracted.tipo_iva || 21,
+        descripcion: data.extracted.descripcion || "",
+        layout_orientacion: data.extracted.layout_orientacion || "vertical",
+        layout_footer_libre: data.extracted.layout_footer_libre ?? true,
+      });
+      setUploadStep("review");
+      toast.success("Datos extraídos correctamente. Revisa y confirma.");
+    } catch (err: any) {
+      toast.error(err.message || "Error al analizar el PDF");
+    } finally {
+      setExtrayendo(false);
+    }
+  };
+
+  const handleSubirPdf = async () => {
+    if (!pdfFile || !extractedData) return;
+    setSubiendo(true);
+    setUploadStep("sealing");
+    try {
+      const formData = new FormData();
+      formData.append("pdf", pdfFile);
+      formData.append("emisorNif", extractedData.emisor_nif);
+      formData.append("emisorNombre", extractedData.emisor_nombre);
+      formData.append("layoutOrientacion", extractedData.layout_orientacion);
+      formData.append("layoutFooterLibre", String(extractedData.layout_footer_libre));
+      formData.append("baseImponible", String(extractedData.base_imponible));
+      formData.append("totalIva", String(extractedData.total_iva));
+      formData.append("totalIrpf", String(extractedData.total_irpf));
+      formData.append("total", String(extractedData.total));
+      formData.append("descripcion", extractedData.descripcion);
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("No hay sesión activa");
@@ -228,11 +307,20 @@ export default function Facturacion() {
 
       toast.success(`PDF sellado con QR tributario — ${data.id}`);
       setPdfFile(null);
+      setExtractedData(null);
+      setUploadStep("upload");
     } catch (err: any) {
       toast.error(err.message || "Error al cargar el PDF");
+      setUploadStep("review");
     } finally {
       setSubiendo(false);
     }
+  };
+
+  const resetUpload = () => {
+    setPdfFile(null);
+    setExtractedData(null);
+    setUploadStep("upload");
   };
 
   const downloadPdf = () => {
@@ -530,75 +618,172 @@ export default function Facturacion() {
         </TabsContent>
 
         <TabsContent value="cargar">
-          <Card>
-            <CardHeader>
-              <CardTitle>Cargar Factura de Terceros</CardTitle>
-              <CardDescription>
-                Sube un PDF de factura para sellarlo con código QR tributario de trazabilidad
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div
-                className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
-                  dragOver
-                    ? "border-primary bg-accent"
-                    : "border-border hover:border-primary/50"
-                }`}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setDragOver(true);
-                }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={handleDrop}
-              >
-                <FileUp className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground mb-2">
-                  Arrastra un archivo PDF aquí o haz clic para seleccionar
-                </p>
-                <input
-                  type="file"
-                  accept=".pdf"
-                  className="hidden"
-                  id="pdf-upload"
-                  onChange={handleFileInput}
-                />
-                <Button variant="outline" asChild>
-                  <label htmlFor="pdf-upload" className="cursor-pointer">
-                    Seleccionar PDF
-                  </label>
-                </Button>
-              </div>
-
-              {pdfFile && (
-                <div className="flex items-center justify-between p-3 bg-accent rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <FileUp className="h-5 w-5 text-primary" />
-                    <span className="text-sm font-medium">{pdfFile.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      ({(pdfFile.size / 1024).toFixed(0)} KB)
-                    </span>
+          <div className="space-y-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-4 mb-2">
+                  <div className={`flex items-center gap-2 text-sm font-medium ${uploadStep === "upload" ? "text-primary" : "text-muted-foreground"}`}>
+                    <FileUp className="h-4 w-4" />
+                    1. Subir PDF
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setPdfFile(null)}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="h-px flex-1 bg-border" />
+                  <div className={`flex items-center gap-2 text-sm font-medium ${uploadStep === "review" ? "text-primary" : "text-muted-foreground"}`}>
+                    <Brain className="h-4 w-4" />
+                    2. Revisar datos
+                  </div>
+                  <div className="h-px flex-1 bg-border" />
+                  <div className={`flex items-center gap-2 text-sm font-medium ${uploadStep === "sealing" ? "text-primary" : "text-muted-foreground"}`}>
+                    <CheckCircle className="h-4 w-4" />
+                    3. Sellar
+                  </div>
                 </div>
-              )}
+                <Progress value={uploadStep === "upload" ? 33 : uploadStep === "review" ? 66 : 100} className="h-2" />
+              </CardContent>
+            </Card>
 
-              <Button
-                className="w-full"
-                size="lg"
-                disabled={!pdfFile || subiendo}
-                onClick={handleSubirPdf}
-              >
-                {subiendo ? "Cargando y sellando..." : "Cargar y Sellar con QR Tributario"}
-              </Button>
-            </CardContent>
-          </Card>
+            {uploadStep === "upload" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Cargar Factura de Terceros</CardTitle>
+                  <CardDescription>Sube un PDF de factura. La IA extraerá automáticamente los datos para revisarlos antes de sellar.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${dragOver ? "border-primary bg-accent" : "border-border hover:border-primary/50"}`}
+                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={handleDrop}
+                  >
+                    <FileUp className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground mb-2">Arrastra un archivo PDF aquí o haz clic para seleccionar</p>
+                    <input type="file" accept=".pdf" className="hidden" id="pdf-upload" onChange={handleFileInput} />
+                    <Button variant="outline" asChild>
+                      <label htmlFor="pdf-upload" className="cursor-pointer">Seleccionar PDF</label>
+                    </Button>
+                  </div>
+                  {pdfFile && (
+                    <div className="flex items-center justify-between p-3 bg-accent rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <FileUp className="h-5 w-5 text-primary" />
+                        <span className="text-sm font-medium">{pdfFile.name}</span>
+                        <span className="text-xs text-muted-foreground">({(pdfFile.size / 1024).toFixed(0)} KB)</span>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => setPdfFile(null)} className="text-muted-foreground hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                  <Button className="w-full" size="lg" disabled={!pdfFile || extrayendo} onClick={handleExtractData}>
+                    <Brain className="h-4 w-4 mr-2" />
+                    {extrayendo ? "Analizando PDF con IA..." : "Analizar y Extraer Datos"}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {uploadStep === "review" && extractedData && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Edit2 className="h-5 w-5" /> Datos Extraídos — Revisa y Edita</CardTitle>
+                  <CardDescription>La IA ha extraído estos datos del PDF. Revísalos y corrígelos si es necesario.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Emisor (Nombre)</Label>
+                      <Input value={extractedData.emisor_nombre} onChange={(e) => setExtractedData({ ...extractedData, emisor_nombre: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Emisor (NIF/CIF)</Label>
+                      <Input value={extractedData.emisor_nif} onChange={(e) => setExtractedData({ ...extractedData, emisor_nif: e.target.value })} />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label>Dirección del emisor</Label>
+                      <Input value={extractedData.emisor_direccion} onChange={(e) => setExtractedData({ ...extractedData, emisor_direccion: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Nº Factura Original</Label>
+                      <Input value={extractedData.numero_factura} onChange={(e) => setExtractedData({ ...extractedData, numero_factura: e.target.value })} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Fecha de Emisión</Label>
+                      <Input value={extractedData.fecha_emision} onChange={(e) => setExtractedData({ ...extractedData, fecha_emision: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="border-t pt-4">
+                    <h4 className="font-medium mb-3">Importes</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="space-y-2">
+                        <Label>Base Imponible</Label>
+                        <Input type="number" step="0.01" value={extractedData.base_imponible} onChange={(e) => setExtractedData({ ...extractedData, base_imponible: Number(e.target.value) })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>IVA ({extractedData.tipo_iva}%)</Label>
+                        <Input type="number" step="0.01" value={extractedData.total_iva} onChange={(e) => setExtractedData({ ...extractedData, total_iva: Number(e.target.value) })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>IRPF</Label>
+                        <Input type="number" step="0.01" value={extractedData.total_irpf} onChange={(e) => setExtractedData({ ...extractedData, total_irpf: Number(e.target.value) })} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Total</Label>
+                        <Input type="number" step="0.01" value={extractedData.total} onChange={(e) => setExtractedData({ ...extractedData, total: Number(e.target.value) })} />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Descripción</Label>
+                    <Textarea value={extractedData.descripcion} onChange={(e) => setExtractedData({ ...extractedData, descripcion: e.target.value })} rows={2} />
+                  </div>
+                  <div className="border-t pt-4">
+                    <h4 className="font-medium mb-3">Posición del QR</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Orientación del PDF</Label>
+                        <Select value={extractedData.layout_orientacion} onValueChange={(v) => setExtractedData({ ...extractedData, layout_orientacion: v as "horizontal" | "vertical" })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="vertical">Vertical (portrait)</SelectItem>
+                            <SelectItem value="horizontal">Horizontal (landscape)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Pie de página</Label>
+                        <Select value={extractedData.layout_footer_libre ? "libre" : "ocupado"} onValueChange={(v) => setExtractedData({ ...extractedData, layout_footer_libre: v === "libre" })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="libre">Libre (QR centrado abajo)</SelectItem>
+                            <SelectItem value="ocupado">Ocupado (QR en esquina)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={resetUpload}>Volver</Button>
+                    <Button className="flex-1" size="lg" onClick={handleSubirPdf} disabled={subiendo}>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      {subiendo ? "Sellando PDF..." : "Confirmar y Sellar con QR Tributario"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {uploadStep === "sealing" && (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <div className="animate-pulse flex flex-col items-center gap-4">
+                    <CheckCircle className="h-12 w-12 text-primary" />
+                    <p className="text-lg font-medium">Sellando PDF con QR Tributario...</p>
+                    <p className="text-sm text-muted-foreground">Generando huella SHA-256 y código QR</p>
+                    <Progress value={75} className="w-64 h-2" />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
 
