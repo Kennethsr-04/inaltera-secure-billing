@@ -1,4 +1,4 @@
-import { Building2, FileText, ClipboardList, LogOut } from "lucide-react";
+import { Building2, FileText, ClipboardList, LogOut, ArrowUpDown } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { InalteraLogo } from "@/components/InalteraLogo";
