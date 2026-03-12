@@ -13,6 +13,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import Perfil from "@/pages/Perfil";
 import Facturacion from "@/pages/Facturacion";
 import RegistroFacturas from "@/pages/Registro";
+import Datos from "@/pages/Datos";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
