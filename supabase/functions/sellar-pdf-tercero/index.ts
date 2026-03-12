@@ -104,14 +104,10 @@ Deno.serve(async (req) => {
     )}&huella=${encodeURIComponent(huella)}`;
 
     // Generate QR code as PNG
-    const qrDataUrl = await QRCode.toDataURL(qrUrl, {
-      errorCorrectionLevel: "H",
-      margin: 1,
-      width: 150,
-    });
-
-    const qrImageBytes = Uint8Array.from(atob(qrDataUrl.split(",")[1]), (c) => c.charCodeAt(0));
-    const qrImage = await pdfDoc.embedPng(qrImageBytes);
+    // Generate QR data matrix (no canvas needed)
+    const qrData = QRCode.create(qrUrl, { errorCorrectionLevel: "H" });
+    const modules = qrData.modules;
+    const moduleCount = modules.size;
 
     // Smart QR positioning based on layout analysis
     const qrSize = 100;
@@ -120,15 +116,12 @@ Deno.serve(async (req) => {
     let qrY: number;
 
     if (layoutOrientacion === "horizontal") {
-      // Landscape: place QR in bottom-left to avoid common right-side content
       qrX = margin;
       qrY = margin;
     } else if (layoutFooterLibre) {
-      // Portrait with free footer: center QR at the bottom
       qrX = (width - qrSize) / 2;
       qrY = margin;
     } else {
-      // Portrait with occupied footer: bottom-right corner (default)
       qrX = width - margin - qrSize;
       qrY = margin;
     }
@@ -153,7 +146,21 @@ Deno.serve(async (req) => {
       borderWidth: 1,
     });
 
-    lastPage.drawImage(qrImage, { x: qrX, y: qrY, width: qrSize, height: qrSize });
+    // Draw QR modules directly as rectangles
+    const cellSize = qrSize / moduleCount;
+    for (let row = 0; row < moduleCount; row++) {
+      for (let col = 0; col < moduleCount; col++) {
+        if (modules.get(row, col)) {
+          lastPage.drawRectangle({
+            x: qrX + col * cellSize,
+            y: qrY + qrSize - (row + 1) * cellSize,
+            width: cellSize,
+            height: cellSize,
+            color: rgb(0, 0, 0),
+          });
+        }
+      }
+    }
 
     lastPage.drawText("QR Tributario", {
       x: qrX + 14,
