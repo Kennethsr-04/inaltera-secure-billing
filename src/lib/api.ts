@@ -12,7 +12,9 @@ class ApiClient {
   }
 
   private getToken(): string | null {
-    return localStorage.getItem("inaltera_token");
+    // Use Supabase session token instead of raw localStorage
+    const raw = localStorage.getItem("inaltera_token");
+    return raw;
   }
 
   async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
