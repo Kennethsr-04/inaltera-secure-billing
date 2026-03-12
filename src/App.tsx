@@ -60,6 +60,16 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/datos"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Datos />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
