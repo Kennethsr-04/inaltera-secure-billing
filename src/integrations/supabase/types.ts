@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      conexiones_bd: {
+        Row: {
+          activa: boolean
+          created_at: string
+          host: string
+          id: string
+          nombre: string
+          nombre_bd: string
+          password_bd: string | null
+          puerto: string
+          tipo_bd: string
+          ultima_sincronizacion: string | null
+          updated_at: string
+          user_id: string
+          usuario_bd: string
+        }
+        Insert: {
+          activa?: boolean
+          created_at?: string
+          host: string
+          id?: string
+          nombre?: string
+          nombre_bd: string
+          password_bd?: string | null
+          puerto?: string
+          tipo_bd?: string
+          ultima_sincronizacion?: string | null
+          updated_at?: string
+          user_id: string
+          usuario_bd: string
+        }
+        Update: {
+          activa?: boolean
+          created_at?: string
+          host?: string
+          id?: string
+          nombre?: string
+          nombre_bd?: string
+          password_bd?: string | null
+          puerto?: string
+          tipo_bd?: string
+          ultima_sincronizacion?: string | null
+          updated_at?: string
+          user_id?: string
+          usuario_bd?: string
+        }
+        Relationships: []
+      }
       facturas: {
         Row: {
           base_imponible: number
