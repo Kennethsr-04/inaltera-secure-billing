@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,17 +7,26 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { FilePlus, Upload, Plus, Trash2, FileUp, Download, FileText, Brain, CheckCircle, Edit2, ChevronsUpDown, Check } from "lucide-react";
+import { FilePlus, Upload, Plus, Trash2, FileUp, Download, FileText, Brain, CheckCircle, Edit2, ChevronsUpDown, Check, UserPlus, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
-import { mockClientes, mockProductos } from "@/lib/mock-data";
+import { mockProductos } from "@/lib/mock-data";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+
+interface Cliente {
+  id: string;
+  nombre: string;
+  nif: string;
+  direccion: string | null;
+  email: string | null;
+  telefono: string | null;
+}
 
 interface LineaFactura {
   id: string;
@@ -66,60 +75,201 @@ interface ExtractedInvoiceData {
   layout_footer_libre: boolean;
 }
 
-function ClienteCombobox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const selectedCliente = mockClientes.find((c) => c.id === value);
+function useClientes() {
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchClientes = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("clientes")
+      .select("id, nombre, nif, direccion, email, telefono")
+      .order("nombre");
+    if (!error && data) setClientes(data);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { fetchClientes(); }, [fetchClientes]);
+
+  return { clientes, loading, refetch: fetchClientes };
+}
+
+function NuevoClienteDialog({ open, onOpenChange, onCreated }: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onCreated: (id: string) => void;
+}) {
+  const [nombre, setNombre] = useState("");
+  const [nif, setNif] = useState("");
+  const [direccion, setDireccion] = useState("");
+  const [email, setEmail] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!nombre.trim() || !nif.trim()) {
+      toast.error("Nombre y NIF son obligatorios");
+      return;
+    }
+    setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { toast.error("No autenticado"); setSaving(false); return; }
+
+    const { data, error } = await supabase.from("clientes").insert({
+      user_id: user.id,
+      nombre: nombre.trim(),
+      nif: nif.trim(),
+      direccion: direccion.trim() || null,
+      email: email.trim() || null,
+      telefono: telefono.trim() || null,
+    }).select("id").single();
+
+    setSaving(false);
+    if (error) {
+      toast.error("Error al guardar el cliente");
+    } else {
+      toast.success("Cliente creado correctamente");
+      setNombre(""); setNif(""); setDireccion(""); setEmail(""); setTelefono("");
+      onOpenChange(false);
+      onCreated(data.id);
+    }
+  };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          className="w-full justify-between font-normal"
-        >
-          {selectedCliente
-            ? `${selectedCliente.nombre} (${selectedCliente.nif})`
-            : "Buscar o seleccionar cliente..."}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <Command>
-          <CommandInput placeholder="Buscar cliente por nombre o NIF..." />
-          <CommandList>
-            <CommandEmpty>No se encontraron clientes.</CommandEmpty>
-            <CommandGroup>
-              {mockClientes.map((c) => (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <UserPlus className="h-5 w-5 text-primary" />
+            Nuevo Cliente
+          </DialogTitle>
+          <DialogDescription>Añade los datos del nuevo cliente</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Nombre / Razón Social *</Label>
+              <Input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Empresa S.L." />
+            </div>
+            <div className="space-y-1.5">
+              <Label>NIF / CIF *</Label>
+              <Input value={nif} onChange={(e) => setNif(e.target.value)} placeholder="B12345678" />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Dirección</Label>
+            <Input value={direccion} onChange={(e) => setDireccion(e.target.value)} placeholder="Calle Mayor 1, Madrid" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Email</Label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="info@empresa.com" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Teléfono</Label>
+              <Input value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="912345678" />
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <UserPlus className="h-4 w-4 mr-2" />}
+            Guardar Cliente
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ClienteCombobox({ value, onChange, clientes, onRefetch }: {
+  value: string;
+  onChange: (v: string) => void;
+  clientes: Cliente[];
+  onRefetch: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const selectedCliente = clientes.find((c) => c.id === value);
+
+  return (
+    <>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between font-normal"
+          >
+            {selectedCliente
+              ? `${selectedCliente.nombre} (${selectedCliente.nif})`
+              : "Buscar o seleccionar cliente..."}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Buscar cliente por nombre o NIF..." />
+            <CommandList>
+              <CommandEmpty>
+                <p className="text-sm text-muted-foreground">No se encontraron clientes.</p>
+              </CommandEmpty>
+              <CommandGroup>
+                {clientes.map((c) => (
+                  <CommandItem
+                    key={c.id}
+                    value={`${c.nombre} ${c.nif}`}
+                    onSelect={() => {
+                      onChange(c.id);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === c.id ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {c.nombre} ({c.nif})
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+              <CommandGroup>
                 <CommandItem
-                  key={c.id}
-                  value={`${c.nombre} ${c.nif}`}
                   onSelect={() => {
-                    onChange(c.id);
                     setOpen(false);
+                    setShowNew(true);
                   }}
+                  className="text-primary"
                 >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === c.id ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  {c.nombre} ({c.nif})
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Añadir nuevo cliente
                 </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      <NuevoClienteDialog
+        open={showNew}
+        onOpenChange={setShowNew}
+        onCreated={(id) => {
+          onRefetch();
+          onChange(id);
+        }}
+      />
+    </>
   );
 }
 
 export default function Facturacion() {
 
   const { token } = useAuth();
+
+  // Clients
+  const { clientes, refetch: refetchClientes } = useClientes();
 
   // Factura form state
   const [clienteId, setClienteId] = useState("");
@@ -197,8 +347,13 @@ export default function Facturacion() {
     }
     setEmitiendo(true);
     try {
-      const cliente = mockClientes.find((c) => c.id === clienteId);
-      if (!cliente) throw new Error("Cliente no encontrado");
+      const { data: clienteData, error: clienteError } = await supabase
+        .from("clientes")
+        .select("nombre, nif, direccion")
+        .eq("id", clienteId)
+        .single();
+      if (clienteError || !clienteData) throw new Error("Cliente no encontrado");
+      const cliente = clienteData;
 
       const { data, error } = await supabase.functions.invoke("generar-factura-pdf", {
         body: {
@@ -422,7 +577,7 @@ export default function Facturacion() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>Cliente *</Label>
-                    <ClienteCombobox value={clienteId} onChange={setClienteId} />
+                    <ClienteCombobox value={clienteId} onChange={setClienteId} clientes={clientes} onRefetch={refetchClientes} />
                   </div>
                   <div className="space-y-2">
                     <Label>Tipo de Factura</Label>
