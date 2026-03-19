@@ -66,7 +66,58 @@ interface ExtractedInvoiceData {
   layout_footer_libre: boolean;
 }
 
-export default function Facturacion() {
+function ClienteCombobox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const selectedCliente = mockClientes.find((c) => c.id === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between font-normal"
+        >
+          {selectedCliente
+            ? `${selectedCliente.nombre} (${selectedCliente.nif})`
+            : "Buscar o seleccionar cliente..."}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Buscar cliente por nombre o NIF..." />
+          <CommandList>
+            <CommandEmpty>No se encontraron clientes.</CommandEmpty>
+            <CommandGroup>
+              {mockClientes.map((c) => (
+                <CommandItem
+                  key={c.id}
+                  value={`${c.nombre} ${c.nif}`}
+                  onSelect={() => {
+                    onChange(c.id);
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === c.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {c.nombre} ({c.nif})
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+
   const { token } = useAuth();
 
   // Factura form state
