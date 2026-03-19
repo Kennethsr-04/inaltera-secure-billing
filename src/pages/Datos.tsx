@@ -337,25 +337,66 @@ function ImportTab() {
 // ─── External DB connection component ───────────────────────
 function ConexionExternaTab() {
   const [dbType, setDbType] = useState("postgresql");
+  const [nombre, setNombre] = useState("");
   const [host, setHost] = useState("");
   const [port, setPort] = useState("5432");
   const [dbName, setDbName] = useState("");
   const [dbUser, setDbUser] = useState("");
   const [dbPassword, setDbPassword] = useState("");
-  const [testing, setTesting] = useState(false);
-  const [connected, setConnected] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [conexiones, setConexiones] = useState<any[]>([]);
+  const [loadingConexiones, setLoadingConexiones] = useState(true);
 
-  const handleTest = async () => {
+  const fetchConexiones = async () => {
+    setLoadingConexiones(true);
+    const { data, error } = await supabase.from("conexiones_bd").select("*").order("created_at", { ascending: false });
+    if (!error && data) setConexiones(data);
+    setLoadingConexiones(false);
+  };
+
+  useState(() => { fetchConexiones(); });
+
+  const handleSave = async () => {
     if (!host || !dbName || !dbUser) {
       toast.error("Completa los campos obligatorios");
       return;
     }
-    setTesting(true);
-    // Simulate connection test
-    await new Promise(r => setTimeout(r, 2000));
-    setTesting(false);
-    setConnected(true);
-    toast.success("Conexión establecida correctamente");
+    setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { toast.error("No autenticado"); setSaving(false); return; }
+
+    const { error } = await supabase.from("conexiones_bd").insert({
+      user_id: user.id,
+      nombre: nombre || `${dbType} - ${host}`,
+      tipo_bd: dbType,
+      host,
+      puerto: port,
+      nombre_bd: dbName,
+      usuario_bd: dbUser,
+      password_bd: dbPassword || null,
+      activa: true,
+    } as any);
+
+    setSaving(false);
+    if (error) {
+      toast.error("Error al guardar la conexión");
+      console.error(error);
+    } else {
+      toast.success("Conexión guardada correctamente");
+      setNombre(""); setHost(""); setPort("5432"); setDbName(""); setDbUser(""); setDbPassword("");
+      fetchConexiones();
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("conexiones_bd").delete().eq("id", id);
+    if (error) toast.error("Error al eliminar");
+    else { toast.success("Conexión eliminada"); fetchConexiones(); }
+  };
+
+  const handleToggle = async (id: string, activa: boolean) => {
+    const { error } = await supabase.from("conexiones_bd").update({ activa: !activa } as any).eq("id", id);
+    if (!error) fetchConexiones();
   };
 
   return (
@@ -364,18 +405,20 @@ function ConexionExternaTab() {
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Database className="h-5 w-5 text-primary" />
-            Conexión a Base de Datos Externa
+            Nueva Conexión a Base de Datos
           </CardTitle>
-          <CardDescription>Conecta con tu base de datos para sincronizar facturas</CardDescription>
+          <CardDescription>Configura y guarda conexiones a bases de datos externas</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
+              <Label>Nombre de la conexión</Label>
+              <Input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Mi base de datos" />
+            </div>
+            <div className="space-y-2">
               <Label>Tipo de Base de Datos</Label>
               <Select value={dbType} onValueChange={setDbType}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="postgresql">PostgreSQL</SelectItem>
                   <SelectItem value="mysql">MySQL</SelectItem>
@@ -400,49 +443,58 @@ function ConexionExternaTab() {
               <Label>Usuario *</Label>
               <Input value={dbUser} onChange={e => setDbUser(e.target.value)} placeholder="usuario" />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <Label>Contraseña</Label>
               <Input type="password" value={dbPassword} onChange={e => setDbPassword(e.target.value)} placeholder="••••••••" />
             </div>
           </div>
 
-          <Separator />
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Database className="h-4 w-4 mr-2" />}
+            Guardar Conexión
+          </Button>
+        </CardContent>
+      </Card>
 
-          <div className="flex items-center gap-3">
-            <Button onClick={handleTest} disabled={testing} variant={connected ? "outline" : "default"}>
-              {testing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Link2 className="h-4 w-4 mr-2" />}
-              {connected ? "Reconectar" : "Probar Conexión"}
-            </Button>
-            {connected && (
-              <Badge className="bg-success/10 text-success border-success/20">
-                <CheckCircle2 className="h-3 w-3 mr-1" /> Conectada
-              </Badge>
-            )}
-          </div>
-
-          {connected && (
-            <Card className="border-primary/20 bg-primary/5">
-              <CardContent className="pt-4">
-                <div className="flex items-start gap-3">
-                  <ArrowUpDown className="h-5 w-5 text-primary mt-0.5" />
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Sincronización disponible</p>
-                    <p className="text-xs text-muted-foreground">
-                      Puedes importar y exportar facturas entre Inaltera y tu base de datos externa.
-                      La sincronización se realiza bajo demanda.
-                    </p>
-                    <div className="flex gap-2 pt-1">
-                      <Button size="sm" variant="outline" onClick={() => toast.info("Funcionalidad de sincronización próximamente")}>
-                        <Download className="h-3 w-3 mr-1" /> Importar desde BD
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => toast.info("Funcionalidad de sincronización próximamente")}>
-                        <Upload className="h-3 w-3 mr-1" /> Exportar a BD
-                      </Button>
+      {/* Saved connections list */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Conexiones Guardadas</CardTitle>
+          <CardDescription>Gestiona tus conexiones a bases de datos externas</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loadingConexiones ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : conexiones.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">No hay conexiones guardadas</p>
+          ) : (
+            <div className="space-y-3">
+              {conexiones.map((c) => (
+                <div key={c.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Database className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-medium text-sm">{c.nombre}</p>
+                      <p className="text-xs text-muted-foreground">{c.tipo_bd} · {c.host}:{c.puerto} · {c.nombre_bd}</p>
                     </div>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      className={c.activa ? "bg-success/10 text-success border-success/20 cursor-pointer" : "cursor-pointer"}
+                      variant={c.activa ? "outline" : "secondary"}
+                      onClick={() => handleToggle(c.id, c.activa)}
+                    >
+                      {c.activa ? "Activa" : "Inactiva"}
+                    </Badge>
+                    <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleDelete(c.id)}>
+                      ✕
+                    </Button>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
