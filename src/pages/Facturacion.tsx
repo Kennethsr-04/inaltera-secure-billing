@@ -117,6 +117,7 @@ function ClienteCombobox({ value, onChange }: { value: string; onChange: (v: str
   );
 }
 
+export default function Facturacion() {
 
   const { token } = useAuth();
 
