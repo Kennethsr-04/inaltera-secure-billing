@@ -344,8 +344,13 @@ export default function Facturacion() {
     }
     setEmitiendo(true);
     try {
-      const cliente = mockClientes.find((c) => c.id === clienteId);
-      if (!cliente) throw new Error("Cliente no encontrado");
+      const { data: clienteData, error: clienteError } = await supabase
+        .from("clientes")
+        .select("nombre, nif, direccion")
+        .eq("id", clienteId)
+        .single();
+      if (clienteError || !clienteData) throw new Error("Cliente no encontrado");
+      const cliente = clienteData;
 
       const { data, error } = await supabase.functions.invoke("generar-factura-pdf", {
         body: {
