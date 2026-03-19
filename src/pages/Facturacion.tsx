@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
-import { FilePlus, Upload, Plus, Trash2, FileUp, Download, FileText, Brain, CheckCircle, Edit2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { FilePlus, Upload, Plus, Trash2, FileUp, Download, FileText, Brain, CheckCircle, Edit2, ChevronsUpDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import { mockClientes, mockProductos } from "@/lib/mock-data";
@@ -63,7 +66,59 @@ interface ExtractedInvoiceData {
   layout_footer_libre: boolean;
 }
 
+function ClienteCombobox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const selectedCliente = mockClientes.find((c) => c.id === value);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between font-normal"
+        >
+          {selectedCliente
+            ? `${selectedCliente.nombre} (${selectedCliente.nif})`
+            : "Buscar o seleccionar cliente..."}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Buscar cliente por nombre o NIF..." />
+          <CommandList>
+            <CommandEmpty>No se encontraron clientes.</CommandEmpty>
+            <CommandGroup>
+              {mockClientes.map((c) => (
+                <CommandItem
+                  key={c.id}
+                  value={`${c.nombre} ${c.nif}`}
+                  onSelect={() => {
+                    onChange(c.id);
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === c.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {c.nombre} ({c.nif})
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export default function Facturacion() {
+
   const { token } = useAuth();
 
   // Factura form state
@@ -367,18 +422,7 @@ export default function Facturacion() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>Cliente *</Label>
-                    <Select value={clienteId} onValueChange={setClienteId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar cliente" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mockClientes.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.nombre} ({c.nif})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <ClienteCombobox value={clienteId} onChange={setClienteId} />
                   </div>
                   <div className="space-y-2">
                     <Label>Tipo de Factura</Label>
