@@ -577,7 +577,7 @@ export default function Facturacion() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>Cliente *</Label>
-                    <ClienteCombobox value={clienteId} onChange={setClienteId} />
+                    <ClienteCombobox value={clienteId} onChange={setClienteId} clientes={clientes} onRefetch={refetchClientes} />
                   </div>
                   <div className="space-y-2">
                     <Label>Tipo de Factura</Label>
