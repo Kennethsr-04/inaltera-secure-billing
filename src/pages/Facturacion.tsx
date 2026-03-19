@@ -370,18 +370,7 @@ export default function Facturacion() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>Cliente *</Label>
-                    <Select value={clienteId} onValueChange={setClienteId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar cliente" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mockClientes.map((c) => (
-                          <SelectItem key={c.id} value={c.id}>
-                            {c.nombre} ({c.nif})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <ClienteCombobox value={clienteId} onChange={setClienteId} />
                   </div>
                   <div className="space-y-2">
                     <Label>Tipo de Factura</Label>
