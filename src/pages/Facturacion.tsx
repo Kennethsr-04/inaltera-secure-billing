@@ -268,6 +268,9 @@ export default function Facturacion() {
 
   const { token } = useAuth();
 
+  // Clients
+  const { clientes, refetch: refetchClientes } = useClientes();
+
   // Factura form state
   const [clienteId, setClienteId] = useState("");
   const [tipoFactura, setTipoFactura] = useState("completa");
