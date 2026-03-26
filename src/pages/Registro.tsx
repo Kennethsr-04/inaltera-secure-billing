@@ -49,24 +49,38 @@ export default function RegistroFacturas() {
     setLoading(false);
   }, [user]);
 
-  useEffect(() => {
-    if (!user) return;
-    const fetchFacturas = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("facturas")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) {
-        toast.error("Error al cargar facturas");
-        console.error(error);
-      } else {
-        setFacturas(data || []);
-      }
-      setLoading(false);
-    };
+  useEffect(() => { fetchFacturas(); }, [fetchFacturas]);
+
+  const handleCambiarEstado = async (nuevoEstado: string, nota: string) => {
+    if (!cambiarEstadoFactura || !user) return;
+    const estadoAnterior = cambiarEstadoFactura.estado;
+    const { error: updateError } = await supabase
+      .from("facturas")
+      .update({ estado: nuevoEstado })
+      .eq("id", cambiarEstadoFactura.id);
+    if (updateError) { toast.error("Error al actualizar estado"); return; }
+    await supabase.from("factura_estados_log").insert({
+      factura_id: cambiarEstadoFactura.id,
+      user_id: user.id,
+      estado_anterior: estadoAnterior,
+      estado_nuevo: nuevoEstado,
+      nota: nota || null,
+    });
+    toast.success(`Estado cambiado a "${nuevoEstado}"`);
     fetchFacturas();
-  }, [user]);
+  };
+
+  const openHistorial = async (factura: Factura) => {
+    setHistorialFactura(factura);
+    setLoadingHistorial(true);
+    const { data } = await supabase
+      .from("factura_estados_log")
+      .select("id, estado_anterior, estado_nuevo, nota, created_at")
+      .eq("factura_id", factura.id)
+      .order("created_at", { ascending: false });
+    setHistorialLogs((data as EstadoLog[]) || []);
+    setLoadingHistorial(false);
+  };
 
   const filtered = useMemo(() => {
     return facturas.filter((f) => {
