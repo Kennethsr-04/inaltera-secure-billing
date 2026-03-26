@@ -52,7 +52,9 @@ export default function RegistroFacturas() {
   useEffect(() => { fetchFacturas(); }, [fetchFacturas]);
 
   const handleCambiarEstado = async (nuevoEstado: string, nota: string) => {
-    if (!cambiarEstadoFactura || !user) return;
+    if (!cambiarEstadoFactura) return;
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) { toast.error("No autenticado"); return; }
     const estadoAnterior = cambiarEstadoFactura.estado;
     const { error: updateError } = await supabase
       .from("facturas")
@@ -61,7 +63,7 @@ export default function RegistroFacturas() {
     if (updateError) { toast.error("Error al actualizar estado"); return; }
     await supabase.from("factura_estados_log").insert({
       factura_id: cambiarEstadoFactura.id,
-      user_id: user.id,
+      user_id: authUser.id,
       estado_anterior: estadoAnterior,
       estado_nuevo: nuevoEstado,
       nota: nota || null,
