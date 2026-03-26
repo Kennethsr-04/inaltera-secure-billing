@@ -18,6 +18,8 @@ const ESTADO_CONFIG: Record<string, { label: string; color: string }> = {
   pagada: { label: "Pagada", color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/30" },
   vencida: { label: "Vencida", color: "bg-amber-500/10 text-amber-600 border-amber-500/30" },
   anulada: { label: "Anulada", color: "bg-destructive/10 text-destructive border-destructive/30" },
+  emitida: { label: "Emitida", color: "bg-primary/10 text-primary border-primary/30" },
+  cargada: { label: "Cargada", color: "bg-secondary text-secondary-foreground border-secondary" },
 };
 
 export function getEstadoConfig(estado: string) {
