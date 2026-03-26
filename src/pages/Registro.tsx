@@ -353,6 +353,31 @@ export default function RegistroFacturas() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Cambiar Estado Dialog */}
+      <CambiarEstadoDialog
+        open={!!cambiarEstadoFactura}
+        onOpenChange={(open) => !open && setCambiarEstadoFactura(null)}
+        estadoActual={cambiarEstadoFactura?.estado ?? "sellada"}
+        onConfirm={handleCambiarEstado}
+      />
+
+      {/* Historial Dialog */}
+      <Dialog open={!!historialFactura} onOpenChange={(open) => !open && setHistorialFactura(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Historial — {historialFactura?.numero_factura}</DialogTitle>
+            <DialogDescription>Registro de cambios de estado</DialogDescription>
+          </DialogHeader>
+          {loadingHistorial ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <EstadoTimeline logs={historialLogs} />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
