@@ -16,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
-import { EstadoBadge, EstadoTimeline, type EstadoLog } from "@/components/factura/EstadoTimeline";
+import { EstadoBadge, EstadoTimeline, ESTADOS, type EstadoLog } from "@/components/factura/EstadoTimeline";
 import { CambiarEstadoDialog } from "@/components/factura/CambiarEstadoDialog";
 
 type Factura = Tables<"facturas">;
