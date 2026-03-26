@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -15,7 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
-import { EstadoBadge, EstadoTimeline, type EstadoLog } from "@/components/factura/EstadoTimeline";
+import { EstadoBadge, EstadoTimeline, ESTADOS, type EstadoLog } from "@/components/factura/EstadoTimeline";
 import { CambiarEstadoDialog } from "@/components/factura/CambiarEstadoDialog";
 
 type Factura = Tables<"facturas">;
@@ -23,6 +24,7 @@ type Factura = Tables<"facturas">;
 export default function RegistroFacturas() {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
+  const [estadoFilter, setEstadoFilter] = useState<string>("todos");
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
   const [facturas, setFacturas] = useState<Factura[]>([]);
@@ -93,9 +95,10 @@ export default function RegistroFacturas() {
       const fDate = new Date(f.created_at);
       const matchFrom = !dateFrom || fDate >= dateFrom;
       const matchTo = !dateTo || fDate <= dateTo;
-      return matchSearch && matchFrom && matchTo;
+      const matchEstado = estadoFilter === "todos" || f.estado === estadoFilter;
+      return matchSearch && matchFrom && matchTo && matchEstado;
     });
-  }, [facturas, search, dateFrom, dateTo]);
+  }, [facturas, search, dateFrom, dateTo, estadoFilter]);
 
   const downloadPdf = async (factura: Factura) => {
     if (!factura.pdf_path) {
@@ -193,13 +196,25 @@ export default function RegistroFacturas() {
                 <Calendar mode="single" selected={dateTo} onSelect={setDateTo} locale={es} className="p-3 pointer-events-auto" />
               </PopoverContent>
             </Popover>
-            {(dateFrom || dateTo || search) && (
+            <Select value={estadoFilter} onValueChange={setEstadoFilter}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {ESTADOS.map((e) => (
+                  <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {(dateFrom || dateTo || search || estadoFilter !== "todos") && (
               <Button
                 variant="ghost"
                 onClick={() => {
                   setSearch("");
                   setDateFrom(undefined);
                   setDateTo(undefined);
+                  setEstadoFilter("todos");
                 }}
               >
                 Limpiar
