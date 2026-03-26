@@ -1,13 +1,12 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
-import { Search, Download, FileText, FileCode, CalendarIcon, QrCode, Loader2 } from "lucide-react";
+import { Search, Download, FileText, FileCode, CalendarIcon, QrCode, Loader2, ArrowRightLeft, History } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -16,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
+import { EstadoBadge, EstadoTimeline, type EstadoLog } from "@/components/factura/EstadoTimeline";
+import { CambiarEstadoDialog } from "@/components/factura/CambiarEstadoDialog";
 
 type Factura = Tables<"facturas">;
 
