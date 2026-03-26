@@ -94,9 +94,10 @@ export default function RegistroFacturas() {
       const fDate = new Date(f.created_at);
       const matchFrom = !dateFrom || fDate >= dateFrom;
       const matchTo = !dateTo || fDate <= dateTo;
-      return matchSearch && matchFrom && matchTo;
+      const matchEstado = estadoFilter === "todos" || f.estado === estadoFilter;
+      return matchSearch && matchFrom && matchTo && matchEstado;
     });
-  }, [facturas, search, dateFrom, dateTo]);
+  }, [facturas, search, dateFrom, dateTo, estadoFilter]);
 
   const downloadPdf = async (factura: Factura) => {
     if (!factura.pdf_path) {
