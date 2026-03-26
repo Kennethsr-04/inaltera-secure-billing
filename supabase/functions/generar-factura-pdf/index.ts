@@ -191,14 +191,21 @@ Deno.serve(async (req) => {
       page.drawText(payload.observaciones.substring(0, 100), { x: margin, y, font, size: 8, color: rgb(0.4, 0.4, 0.4) });
     }
 
-    // QR Code - bottom right
-    const qrImageBytes = Uint8Array.from(atob(qrDataUrl.split(",")[1]), (c) => c.charCodeAt(0));
-    const qrImage = await pdfDoc.embedPng(qrImageBytes);
-    const qrSize = 100;
-    const qrX = width - margin - qrSize;
-    const qrY = margin;
-
-    page.drawImage(qrImage, { x: qrX, y: qrY, width: qrSize, height: qrSize });
+    // Draw QR modules as rectangles directly
+    const cellSize = qrSize / moduleCount;
+    for (let row = 0; row < moduleCount; row++) {
+      for (let col = 0; col < moduleCount; col++) {
+        if (modules.get(row, col)) {
+          page.drawRectangle({
+            x: qrX + col * cellSize,
+            y: qrY + qrSize - (row + 1) * cellSize,
+            width: cellSize,
+            height: cellSize,
+            color: rgb(0, 0, 0),
+          });
+        }
+      }
+    }
 
     // QR label
     page.drawText("QR Tributario", { x: qrX + 18, y: qrY - 12, font: fontBold, size: 8, color: rgb(0.15, 0.4, 0.7) });
