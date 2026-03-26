@@ -98,6 +98,44 @@ export type Database = {
         }
         Relationships: []
       }
+      factura_estados_log: {
+        Row: {
+          created_at: string
+          estado_anterior: string
+          estado_nuevo: string
+          factura_id: string
+          id: string
+          nota: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          estado_anterior: string
+          estado_nuevo: string
+          factura_id: string
+          id?: string
+          nota?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          estado_anterior?: string
+          estado_nuevo?: string
+          factura_id?: string
+          id?: string
+          nota?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factura_estados_log_factura_id_fkey"
+            columns: ["factura_id"]
+            isOneToOne: false
+            referencedRelation: "facturas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       facturas: {
         Row: {
           base_imponible: number
