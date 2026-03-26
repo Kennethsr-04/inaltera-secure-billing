@@ -28,6 +28,26 @@ export default function RegistroFacturas() {
   const [facturas, setFacturas] = useState<Factura[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedQr, setSelectedQr] = useState<Factura | null>(null);
+  const [cambiarEstadoFactura, setCambiarEstadoFactura] = useState<Factura | null>(null);
+  const [historialFactura, setHistorialFactura] = useState<Factura | null>(null);
+  const [historialLogs, setHistorialLogs] = useState<EstadoLog[]>([]);
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
+
+  const fetchFacturas = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("facturas")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      toast.error("Error al cargar facturas");
+      console.error(error);
+    } else {
+      setFacturas(data || []);
+    }
+    setLoading(false);
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
