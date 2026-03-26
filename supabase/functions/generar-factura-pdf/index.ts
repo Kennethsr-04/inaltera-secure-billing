@@ -102,12 +102,10 @@ Deno.serve(async (req) => {
       huella
     );
 
-    // Generate QR code as PNG data URL
-    const qrDataUrl = await QRCode.toDataURL(qrUrl, {
-      errorCorrectionLevel: "H",
-      margin: 1,
-      width: 150,
-    });
+    // Generate QR code modules directly (no canvas needed in Deno)
+    const qrData = QRCode.create(qrUrl, { errorCorrectionLevel: "H" });
+    const modules = qrData.modules;
+    const moduleCount = modules.size;
 
     // Build PDF
     const pdfDoc = await PDFDocument.create();
