@@ -1,13 +1,12 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
-import { Search, Download, FileText, FileCode, CalendarIcon, QrCode, Loader2 } from "lucide-react";
+import { Search, Download, FileText, FileCode, CalendarIcon, QrCode, Loader2, ArrowRightLeft, History } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -16,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
+import { EstadoBadge, EstadoTimeline, type EstadoLog } from "@/components/factura/EstadoTimeline";
+import { CambiarEstadoDialog } from "@/components/factura/CambiarEstadoDialog";
 
 type Factura = Tables<"facturas">;
 
@@ -27,25 +28,61 @@ export default function RegistroFacturas() {
   const [facturas, setFacturas] = useState<Factura[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedQr, setSelectedQr] = useState<Factura | null>(null);
+  const [cambiarEstadoFactura, setCambiarEstadoFactura] = useState<Factura | null>(null);
+  const [historialFactura, setHistorialFactura] = useState<Factura | null>(null);
+  const [historialLogs, setHistorialLogs] = useState<EstadoLog[]>([]);
+  const [loadingHistorial, setLoadingHistorial] = useState(false);
 
-  useEffect(() => {
+  const fetchFacturas = useCallback(async () => {
     if (!user) return;
-    const fetchFacturas = async () => {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("facturas")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) {
-        toast.error("Error al cargar facturas");
-        console.error(error);
-      } else {
-        setFacturas(data || []);
-      }
-      setLoading(false);
-    };
-    fetchFacturas();
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("facturas")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      toast.error("Error al cargar facturas");
+      console.error(error);
+    } else {
+      setFacturas(data || []);
+    }
+    setLoading(false);
   }, [user]);
+
+  useEffect(() => { fetchFacturas(); }, [fetchFacturas]);
+
+  const handleCambiarEstado = async (nuevoEstado: string, nota: string) => {
+    if (!cambiarEstadoFactura) return;
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (!authUser) { toast.error("No autenticado"); return; }
+    const estadoAnterior = cambiarEstadoFactura.estado;
+    const { error: updateError } = await supabase
+      .from("facturas")
+      .update({ estado: nuevoEstado })
+      .eq("id", cambiarEstadoFactura.id);
+    if (updateError) { toast.error("Error al actualizar estado"); return; }
+    await supabase.from("factura_estados_log").insert({
+      factura_id: cambiarEstadoFactura.id,
+      user_id: authUser.id,
+      estado_anterior: estadoAnterior,
+      estado_nuevo: nuevoEstado,
+      nota: nota || null,
+    });
+    toast.success(`Estado cambiado a "${nuevoEstado}"`);
+    fetchFacturas();
+  };
+
+  const openHistorial = async (factura: Factura) => {
+    setHistorialFactura(factura);
+    setLoadingHistorial(true);
+    const { data } = await supabase
+      .from("factura_estados_log")
+      .select("id, estado_anterior, estado_nuevo, nota, created_at")
+      .eq("factura_id", factura.id)
+      .order("created_at", { ascending: false });
+    setHistorialLogs((data as EstadoLog[]) || []);
+    setLoadingHistorial(false);
+  };
 
   const filtered = useMemo(() => {
     return facturas.filter((f) => {
@@ -204,9 +241,7 @@ export default function RegistroFacturas() {
                     <TableRow key={f.id}>
                       <TableCell className="text-sm">{format(new Date(f.created_at), "dd/MM/yyyy")}</TableCell>
                       <TableCell>
-                        <Badge variant={f.origen === "elaborada" ? "default" : "secondary"}>
-                          {f.origen === "elaborada" ? "Emitida" : "Cargada"}
-                        </Badge>
+                        <EstadoBadge estado={f.origen === "elaborada" ? "emitida" : "cargada"} />
                       </TableCell>
                       <TableCell className="font-mono text-sm">{f.numero_factura}</TableCell>
                       <TableCell className="text-sm">{f.cliente_nombre}</TableCell>
@@ -227,28 +262,20 @@ export default function RegistroFacturas() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="text-success border-success/30">
-                          {f.estado}
-                        </Badge>
+                        <EstadoBadge estado={f.estado} />
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            title="Descargar PDF con QR"
-                            onClick={() => downloadPdf(f)}
-                          >
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Cambiar estado" onClick={() => setCambiarEstadoFactura(f)}>
+                            <ArrowRightLeft className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver historial" onClick={() => openHistorial(f)}>
+                            <History className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Descargar PDF con QR" onClick={() => downloadPdf(f)}>
                             <FileText className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            title="Descargar registro JSON"
-                            onClick={() => downloadJson(f)}
-                          >
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Descargar registro JSON" onClick={() => downloadJson(f)}>
                             <FileCode className="h-4 w-4" />
                           </Button>
                         </div>
@@ -324,6 +351,31 @@ export default function RegistroFacturas() {
               )}
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cambiar Estado Dialog */}
+      <CambiarEstadoDialog
+        open={!!cambiarEstadoFactura}
+        onOpenChange={(open) => !open && setCambiarEstadoFactura(null)}
+        estadoActual={cambiarEstadoFactura?.estado ?? "sellada"}
+        onConfirm={handleCambiarEstado}
+      />
+
+      {/* Historial Dialog */}
+      <Dialog open={!!historialFactura} onOpenChange={(open) => !open && setHistorialFactura(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Historial — {historialFactura?.numero_factura}</DialogTitle>
+            <DialogDescription>Registro de cambios de estado</DialogDescription>
+          </DialogHeader>
+          {loadingHistorial ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <EstadoTimeline logs={historialLogs} />
+          )}
         </DialogContent>
       </Dialog>
     </div>
