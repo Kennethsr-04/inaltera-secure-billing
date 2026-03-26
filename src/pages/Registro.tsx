@@ -196,13 +196,25 @@ export default function RegistroFacturas() {
                 <Calendar mode="single" selected={dateTo} onSelect={setDateTo} locale={es} className="p-3 pointer-events-auto" />
               </PopoverContent>
             </Popover>
-            {(dateFrom || dateTo || search) && (
+            <Select value={estadoFilter} onValueChange={setEstadoFilter}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {ESTADOS.map((e) => (
+                  <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {(dateFrom || dateTo || search || estadoFilter !== "todos") && (
               <Button
                 variant="ghost"
                 onClick={() => {
                   setSearch("");
                   setDateFrom(undefined);
                   setDateTo(undefined);
+                  setEstadoFilter("todos");
                 }}
               >
                 Limpiar
