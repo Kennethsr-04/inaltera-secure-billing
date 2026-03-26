@@ -191,6 +191,11 @@ Deno.serve(async (req) => {
       page.drawText(payload.observaciones.substring(0, 100), { x: margin, y, font, size: 8, color: rgb(0.4, 0.4, 0.4) });
     }
 
+    // QR Code - bottom right
+    const qrSize = 100;
+    const qrX = width - margin - qrSize;
+    const qrY = margin + 30;
+
     // Draw QR modules as rectangles directly
     const cellSize = qrSize / moduleCount;
     for (let row = 0; row < moduleCount; row++) {
