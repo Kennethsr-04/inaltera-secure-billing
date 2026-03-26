@@ -23,6 +23,7 @@ type Factura = Tables<"facturas">;
 export default function RegistroFacturas() {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
+  const [estadoFilter, setEstadoFilter] = useState<string>("todos");
   const [dateFrom, setDateFrom] = useState<Date>();
   const [dateTo, setDateTo] = useState<Date>();
   const [facturas, setFacturas] = useState<Factura[]>([]);
