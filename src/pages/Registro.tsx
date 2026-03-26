@@ -241,9 +241,7 @@ export default function RegistroFacturas() {
                     <TableRow key={f.id}>
                       <TableCell className="text-sm">{format(new Date(f.created_at), "dd/MM/yyyy")}</TableCell>
                       <TableCell>
-                        <Badge variant={f.origen === "elaborada" ? "default" : "secondary"}>
-                          {f.origen === "elaborada" ? "Emitida" : "Cargada"}
-                        </Badge>
+                        <EstadoBadge estado={f.origen === "elaborada" ? "emitida" : "cargada"} />
                       </TableCell>
                       <TableCell className="font-mono text-sm">{f.numero_factura}</TableCell>
                       <TableCell className="text-sm">{f.cliente_nombre}</TableCell>
@@ -264,28 +262,20 @@ export default function RegistroFacturas() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="text-success border-success/30">
-                          {f.estado}
-                        </Badge>
+                        <EstadoBadge estado={f.estado} />
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            title="Descargar PDF con QR"
-                            onClick={() => downloadPdf(f)}
-                          >
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Cambiar estado" onClick={() => setCambiarEstadoFactura(f)}>
+                            <ArrowRightLeft className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver historial" onClick={() => openHistorial(f)}>
+                            <History className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Descargar PDF con QR" onClick={() => downloadPdf(f)}>
                             <FileText className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            title="Descargar registro JSON"
-                            onClick={() => downloadJson(f)}
-                          >
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Descargar registro JSON" onClick={() => downloadJson(f)}>
                             <FileCode className="h-4 w-4" />
                           </Button>
                         </div>
