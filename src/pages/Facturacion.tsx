@@ -538,7 +538,10 @@ export default function Facturacion() {
   };
 
   const resetUpload = () => {
+    if (pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl);
     setPdfFile(null);
+    setPdfPreviewUrl(null);
+    setShowPreview(false);
     setExtractedData(null);
     setUploadStep("upload");
   };
