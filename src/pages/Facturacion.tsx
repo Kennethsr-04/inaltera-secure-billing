@@ -526,7 +526,10 @@ export default function Facturacion() {
       });
 
       toast.success(`PDF sellado con QR tributario — ${data.id}`);
+      if (pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl);
       setPdfFile(null);
+      setPdfPreviewUrl(null);
+      setShowPreview(false);
       setExtractedData(null);
       setUploadStep("upload");
     } catch (err: any) {
