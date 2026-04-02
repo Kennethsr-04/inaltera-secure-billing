@@ -286,6 +286,8 @@ export default function Facturacion() {
   const [extrayendo, setExtrayendo] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractedInvoiceData | null>(null);
   const [uploadStep, setUploadStep] = useState<"upload" | "review" | "sealing">("upload");
+  const [showPreview, setShowPreview] = useState(false);
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
 
   // QR result state
   const [qrResult, setQrResult] = useState<QrResultData | null>(null);
