@@ -420,6 +420,10 @@ export default function Facturacion() {
     const file = e.target.files?.[0];
     if (file && file.type === "application/pdf") {
       setPdfFile(file);
+      if (pdfPreviewUrl) URL.revokeObjectURL(pdfPreviewUrl);
+      const url = URL.createObjectURL(file);
+      setPdfPreviewUrl(url);
+      setShowPreview(true);
     } else {
       toast.error("Solo se aceptan archivos PDF");
     }
