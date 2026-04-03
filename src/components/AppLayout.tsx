@@ -2,9 +2,6 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopNav } from "@/components/TopNav";
 import { useLayout } from "@/contexts/LayoutContext";
-import { PanelLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { orientation, toggleOrientation } = useLayout();
