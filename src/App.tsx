@@ -75,6 +75,7 @@ const App = () => (
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </LayoutProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
