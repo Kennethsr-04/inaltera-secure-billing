@@ -1,7 +1,8 @@
-import { Building2, FileText, ClipboardList, LogOut, ArrowUpDown, PanelTop } from "lucide-react";
+import { Building2, FileText, ClipboardList, LogOut, ArrowUpDown, PanelTop, Sun, Moon } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLayout } from "@/contexts/LayoutContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { InalteraLogo } from "@/components/InalteraLogo";
 import {
   Sidebar,
@@ -29,6 +30,7 @@ const navItems = [
 export function AppSidebar() {
   const { user, logout } = useAuth();
   const { toggleOrientation } = useLayout();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <Sidebar>
@@ -80,6 +82,14 @@ export function AppSidebar() {
             <LogOut className="h-4 w-4 mr-2" />
             Cerrar sesión
           </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={toggleTheme} className="shrink-0">
+                {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">{theme === "light" ? "Modo oscuro" : "Modo claro"}</TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" onClick={toggleOrientation} className="shrink-0">

@@ -1,7 +1,8 @@
-import { Building2, FileText, ClipboardList, LogOut, ArrowUpDown, PanelLeft } from "lucide-react";
+import { Building2, FileText, ClipboardList, LogOut, ArrowUpDown, PanelLeft, Sun, Moon } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLayout } from "@/contexts/LayoutContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { InalteraLogo } from "@/components/InalteraLogo";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -16,6 +17,7 @@ const navItems = [
 export function TopNav() {
   const { user, logout } = useAuth();
   const { toggleOrientation } = useLayout();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <header className="h-14 border-b bg-card flex items-center px-4 gap-4 shrink-0">
@@ -39,6 +41,15 @@ export function TopNav() {
         <span className="text-xs text-muted-foreground hidden lg:inline truncate max-w-[200px]">
           {user?.email}
         </span>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={toggleTheme}>
+              {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{theme === "light" ? "Modo oscuro" : "Modo claro"}</TooltipContent>
+        </Tooltip>
 
         <Tooltip>
           <TooltipTrigger asChild>
