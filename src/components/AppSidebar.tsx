@@ -1,7 +1,8 @@
-import { Building2, FileText, ClipboardList, LogOut, ArrowUpDown, PanelTop } from "lucide-react";
+import { Building2, FileText, ClipboardList, LogOut, ArrowUpDown, PanelTop, Sun, Moon } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLayout } from "@/contexts/LayoutContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { InalteraLogo } from "@/components/InalteraLogo";
 import {
   Sidebar,
