@@ -27,15 +27,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <main className="flex-1 flex flex-col min-h-screen">
           <header className="h-14 border-b flex items-center px-4 bg-card shrink-0 gap-2">
             <SidebarTrigger />
-            <div className="flex-1" />
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={toggleOrientation}>
-                  <PanelLeft className="h-4 w-4 rotate-90" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Cambiar a menú superior</TooltipContent>
-            </Tooltip>
           </header>
           <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
             {children}
