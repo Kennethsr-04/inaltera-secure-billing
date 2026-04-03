@@ -84,6 +84,14 @@ export function AppSidebar() {
           </Button>
           <Tooltip>
             <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={toggleTheme} className="shrink-0">
+                {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">{theme === "light" ? "Modo oscuro" : "Modo claro"}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" onClick={toggleOrientation} className="shrink-0">
                 <PanelTop className="h-4 w-4" />
               </Button>

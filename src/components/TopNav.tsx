@@ -44,6 +44,15 @@ export function TopNav() {
 
         <Tooltip>
           <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={toggleTheme}>
+              {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{theme === "light" ? "Modo oscuro" : "Modo claro"}</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={toggleOrientation}>
               <PanelLeft className="h-4 w-4" />
             </Button>
