@@ -26,6 +26,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <LayoutProvider>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/registro-cuenta" element={<Register />} />
