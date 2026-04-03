@@ -1,6 +1,7 @@
-import { Building2, FileText, ClipboardList, LogOut, ArrowUpDown } from "lucide-react";
+import { Building2, FileText, ClipboardList, LogOut, ArrowUpDown, PanelTop } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLayout } from "@/contexts/LayoutContext";
 import { InalteraLogo } from "@/components/InalteraLogo";
 import {
   Sidebar,
@@ -16,6 +17,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const navItems = [
   { title: "Datos de Empresa y Tarifas", url: "/perfil", icon: Building2 },
@@ -26,6 +28,7 @@ const navItems = [
 
 export function AppSidebar() {
   const { user, logout } = useAuth();
+  const { toggleOrientation } = useLayout();
 
   return (
     <Sidebar>
@@ -67,15 +70,25 @@ export function AppSidebar() {
           <div className="w-2 h-2 rounded-full bg-success shrink-0" />
           <span className="truncate">{user?.email}</span>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start text-muted-foreground hover:text-destructive"
-          onClick={logout}
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Cerrar sesión
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex-1 justify-start text-muted-foreground hover:text-destructive"
+            onClick={logout}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Cerrar sesión
+          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={toggleOrientation} className="shrink-0">
+                <PanelTop className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">Cambiar a menú superior</TooltipContent>
+          </Tooltip>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );
