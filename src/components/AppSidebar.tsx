@@ -30,6 +30,7 @@ const navItems = [
 export function AppSidebar() {
   const { user, logout } = useAuth();
   const { toggleOrientation } = useLayout();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <Sidebar>
