@@ -2,7 +2,6 @@ import { Building2, FileText, ClipboardList, LogOut, ArrowUpDown, PanelTop } fro
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLayout } from "@/contexts/LayoutContext";
-import { useAuth } from "@/contexts/AuthContext";
 import { InalteraLogo } from "@/components/InalteraLogo";
 import {
   Sidebar,
