@@ -17,6 +17,7 @@ const navItems = [
 export function TopNav() {
   const { user, logout } = useAuth();
   const { toggleOrientation } = useLayout();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <header className="h-14 border-b bg-card flex items-center px-4 gap-4 shrink-0">
