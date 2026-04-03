@@ -43,7 +43,7 @@ export function TopNav() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="ghost" size="icon" onClick={toggleOrientation}>
-              <PanelTop className="h-4 w-4" />
+              <PanelLeft className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Cambiar a menú lateral</TooltipContent>
