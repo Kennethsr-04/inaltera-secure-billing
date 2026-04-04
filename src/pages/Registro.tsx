@@ -312,6 +312,9 @@ export default function RegistroFacturas() {
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver PDF" onClick={() => viewPdf(f)} disabled={!f.pdf_path}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8" title="Cambiar estado" onClick={() => setCambiarEstadoFactura(f)}>
                             <ArrowRightLeft className="h-4 w-4" />
                           </Button>
