@@ -188,6 +188,16 @@ Deno.serve(async (req) => {
 
     const sealedPdfBytes = await pdfDoc.save();
 
+    // Upload original PDF to storage
+    const originalPdfPath = `${user.id}/original-${numeroFactura.replace(/\//g, "-")}.pdf`;
+    const { error: originalUploadError } = await supabase.storage
+      .from("facturas-pdf")
+      .upload(originalPdfPath, originalPdfBytes, { contentType: "application/pdf", upsert: true });
+
+    if (originalUploadError) {
+      console.error("Original upload error:", originalUploadError);
+    }
+
     // Upload sealed PDF to storage
     const pdfPath = `${user.id}/${numeroFactura.replace(/\//g, "-")}.pdf`;
     const { error: uploadError } = await supabase.storage
