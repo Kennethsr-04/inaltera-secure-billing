@@ -34,6 +34,9 @@ export default function RegistroFacturas() {
   const [historialFactura, setHistorialFactura] = useState<Factura | null>(null);
   const [historialLogs, setHistorialLogs] = useState<EstadoLog[]>([]);
   const [loadingHistorial, setLoadingHistorial] = useState(false);
+  const [previewFactura, setPreviewFactura] = useState<Factura | null>(null);
+  const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
   const fetchFacturas = useCallback(async () => {
     if (!user) return;
