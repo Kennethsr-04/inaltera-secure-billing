@@ -123,6 +123,34 @@ export default function RegistroFacturas() {
     URL.revokeObjectURL(url);
   };
 
+  const viewPdf = async (factura: Factura) => {
+    if (!factura.pdf_path) {
+      toast.error("PDF no disponible");
+      return;
+    }
+    setPreviewFactura(factura);
+    setLoadingPreview(true);
+    setPreviewPdfUrl(null);
+    const { data, error } = await supabase.storage
+      .from("facturas-pdf")
+      .download(factura.pdf_path);
+    if (error || !data) {
+      toast.error("Error al cargar el PDF");
+      setPreviewFactura(null);
+      setLoadingPreview(false);
+      return;
+    }
+    const url = URL.createObjectURL(data);
+    setPreviewPdfUrl(url);
+    setLoadingPreview(false);
+  };
+
+  const closePreview = () => {
+    if (previewPdfUrl) URL.revokeObjectURL(previewPdfUrl);
+    setPreviewFactura(null);
+    setPreviewPdfUrl(null);
+  };
+
   const downloadJson = (factura: Factura) => {
     const registro = {
       numero_factura: factura.numero_factura,
