@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
-import { Search, Download, FileText, FileCode, CalendarIcon, QrCode, Loader2, ArrowRightLeft, History } from "lucide-react";
+import { Search, Download, FileText, FileCode, CalendarIcon, QrCode, Loader2, ArrowRightLeft, History, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -34,6 +34,9 @@ export default function RegistroFacturas() {
   const [historialFactura, setHistorialFactura] = useState<Factura | null>(null);
   const [historialLogs, setHistorialLogs] = useState<EstadoLog[]>([]);
   const [loadingHistorial, setLoadingHistorial] = useState(false);
+  const [previewFactura, setPreviewFactura] = useState<Factura | null>(null);
+  const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
 
   const fetchFacturas = useCallback(async () => {
     if (!user) return;
@@ -118,6 +121,34 @@ export default function RegistroFacturas() {
     a.download = `factura-${factura.numero_factura.replace(/\//g, "-")}.pdf`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const viewPdf = async (factura: Factura) => {
+    if (!factura.pdf_path) {
+      toast.error("PDF no disponible");
+      return;
+    }
+    setPreviewFactura(factura);
+    setLoadingPreview(true);
+    setPreviewPdfUrl(null);
+    const { data, error } = await supabase.storage
+      .from("facturas-pdf")
+      .download(factura.pdf_path);
+    if (error || !data) {
+      toast.error("Error al cargar el PDF");
+      setPreviewFactura(null);
+      setLoadingPreview(false);
+      return;
+    }
+    const url = URL.createObjectURL(data);
+    setPreviewPdfUrl(url);
+    setLoadingPreview(false);
+  };
+
+  const closePreview = () => {
+    if (previewPdfUrl) URL.revokeObjectURL(previewPdfUrl);
+    setPreviewFactura(null);
+    setPreviewPdfUrl(null);
   };
 
   const downloadJson = (factura: Factura) => {
@@ -281,6 +312,9 @@ export default function RegistroFacturas() {
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver PDF" onClick={() => viewPdf(f)} disabled={!f.pdf_path}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8" title="Cambiar estado" onClick={() => setCambiarEstadoFactura(f)}>
                             <ArrowRightLeft className="h-4 w-4" />
                           </Button>
@@ -391,6 +425,34 @@ export default function RegistroFacturas() {
           ) : (
             <EstadoTimeline logs={historialLogs} />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* PDF Preview Dialog */}
+      <Dialog open={!!previewFactura} onOpenChange={(open) => !open && closePreview()}>
+        <DialogContent className="sm:max-w-4xl h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5 text-primary" />
+              {previewFactura?.numero_factura} — {previewFactura?.cliente_nombre}
+            </DialogTitle>
+            <DialogDescription>
+              Vista previa del PDF de la factura
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {loadingPreview ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : previewPdfUrl ? (
+              <iframe
+                src={previewPdfUrl}
+                className="w-full h-full rounded-md border"
+                title={`Vista previa factura ${previewFactura?.numero_factura}`}
+              />
+            ) : null}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
