@@ -427,6 +427,34 @@ export default function RegistroFacturas() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* PDF Preview Dialog */}
+      <Dialog open={!!previewFactura} onOpenChange={(open) => !open && closePreview()}>
+        <DialogContent className="sm:max-w-4xl h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5 text-primary" />
+              {previewFactura?.numero_factura} — {previewFactura?.cliente_nombre}
+            </DialogTitle>
+            <DialogDescription>
+              Vista previa del PDF de la factura
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            {loadingPreview ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : previewPdfUrl ? (
+              <iframe
+                src={previewPdfUrl}
+                className="w-full h-full rounded-md border"
+                title={`Vista previa factura ${previewFactura?.numero_factura}`}
+              />
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
