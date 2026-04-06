@@ -1,4 +1,4 @@
-import { Building2, FileText, ClipboardList, LogOut, ArrowUpDown, PanelTop, Sun, Moon } from "lucide-react";
+import { Building2, FileText, ClipboardList, LogOut, ArrowUpDown, PanelTop, Sun, Moon, Package } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLayout } from "@/contexts/LayoutContext";
@@ -22,6 +22,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 const navItems = [
   { title: "Datos de Empresa y Tarifas", url: "/perfil", icon: Building2 },
+  { title: "Servicios", url: "/servicios", icon: Package },
   { title: "Facturación y Carga", url: "/facturacion", icon: FileText },
   { title: "Registro de Facturas", url: "/registro", icon: ClipboardList },
   { title: "Importar / Exportar", url: "/datos", icon: ArrowUpDown },
