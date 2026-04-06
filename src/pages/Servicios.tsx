@@ -22,6 +22,13 @@ const emptyServicio = { nombre: "", descripcion: "", precio: 0, iva: 21 };
 
 export default function Servicios() {
   const { user } = useAuth();
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id ?? null);
+    });
+  }, []);
   const [servicios, setServicios] = useState<Servicio[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
