@@ -98,6 +98,45 @@ export type Database = {
         }
         Relationships: []
       }
+      empresa_perfil: {
+        Row: {
+          ciudad: string | null
+          codigo_postal: string | null
+          created_at: string
+          direccion: string | null
+          id: string
+          nif: string
+          provincia: string | null
+          razon_social: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ciudad?: string | null
+          codigo_postal?: string | null
+          created_at?: string
+          direccion?: string | null
+          id?: string
+          nif?: string
+          provincia?: string | null
+          razon_social?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ciudad?: string | null
+          codigo_postal?: string | null
+          created_at?: string
+          direccion?: string | null
+          id?: string
+          nif?: string
+          provincia?: string | null
+          razon_social?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       factura_estados_log: {
         Row: {
           created_at: string
