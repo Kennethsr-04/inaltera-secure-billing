@@ -16,6 +16,7 @@ import Perfil from "@/pages/Perfil";
 import Facturacion from "@/pages/Facturacion";
 import RegistroFacturas from "@/pages/Registro";
 import Datos from "@/pages/Datos";
+import Servicios from "@/pages/Servicios";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,6 +71,16 @@ const App = () => (
                 <ProtectedRoute>
                   <AppLayout>
                     <Datos />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/servicios"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Servicios />
                   </AppLayout>
                 </ProtectedRoute>
               }
