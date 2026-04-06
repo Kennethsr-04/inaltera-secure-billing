@@ -74,7 +74,7 @@ export default function Servicios() {
       } else {
         const { error } = await supabase
           .from("servicios")
-          .insert({ user_id: user!.id, nombre: form.nombre, descripcion: form.descripcion, precio: form.precio, iva: form.iva });
+          .insert({ user_id: userId!, nombre: form.nombre, descripcion: form.descripcion, precio: form.precio, iva: form.iva });
         if (error) throw error;
         toast.success("Servicio creado");
       }
