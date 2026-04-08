@@ -17,6 +17,7 @@ import Facturacion from "@/pages/Facturacion";
 import RegistroFacturas from "@/pages/Registro";
 import Datos from "@/pages/Datos";
 import Servicios from "@/pages/Servicios";
+import VerificarFactura from "@/pages/VerificarFactura";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
