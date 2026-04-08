@@ -13,9 +13,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 const planes = [
-  { id: "gratuito", nombre: "Gratuito", precio: 0, facturas: "0-5", limite: 5 },
-  { id: "basico", nombre: "Básico", precio: 9, facturas: "6-10", limite: 10 },
-  { id: "profesional", nombre: "Profesional", precio: 15, facturas: "11-20", limite: 20 },
+  { id: "gratuito", nombre: "Gratuito", precio: 0, facturas: "0-20", limite: 20 },
+  { id: "basico", nombre: "Básico", precio: 9, facturas: "21-50", limite: 50 },
+  { id: "profesional", nombre: "Profesional", precio: 15, facturas: "51-80", limite: 80 },
 ];
 
 export default function Perfil() {
