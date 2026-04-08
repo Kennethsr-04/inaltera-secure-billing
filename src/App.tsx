@@ -17,6 +17,7 @@ import Facturacion from "@/pages/Facturacion";
 import RegistroFacturas from "@/pages/Registro";
 import Datos from "@/pages/Datos";
 import Servicios from "@/pages/Servicios";
+import VerificarFactura from "@/pages/VerificarFactura";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -85,6 +86,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route path="/verificar" element={<VerificarFactura />} />
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
