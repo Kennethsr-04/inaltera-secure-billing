@@ -86,6 +86,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route path="/verificar" element={<VerificarFactura />} />
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
