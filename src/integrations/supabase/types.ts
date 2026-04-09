@@ -182,6 +182,7 @@ export type Database = {
           cliente_nif: string
           cliente_nombre: string
           created_at: string
+          deleted_at: string | null
           estado: string
           huella_hash: string | null
           id: string
@@ -206,6 +207,7 @@ export type Database = {
           cliente_nif: string
           cliente_nombre: string
           created_at?: string
+          deleted_at?: string | null
           estado?: string
           huella_hash?: string | null
           id?: string
@@ -230,6 +232,7 @@ export type Database = {
           cliente_nif?: string
           cliente_nombre?: string
           created_at?: string
+          deleted_at?: string | null
           estado?: string
           huella_hash?: string | null
           id?: string
