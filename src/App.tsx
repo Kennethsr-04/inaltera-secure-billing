@@ -17,6 +17,7 @@ import Facturacion from "@/pages/Facturacion";
 import RegistroFacturas from "@/pages/Registro";
 import Datos from "@/pages/Datos";
 import Servicios from "@/pages/Servicios";
+import Papelera from "@/pages/Papelera";
 import VerificarFactura from "@/pages/VerificarFactura";
 import NotFound from "@/pages/NotFound";
 
@@ -82,6 +83,16 @@ const App = () => (
                 <ProtectedRoute>
                   <AppLayout>
                     <Servicios />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/papelera"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Papelera />
                   </AppLayout>
                 </ProtectedRoute>
               }
