@@ -44,6 +44,7 @@ export default function RegistroFacturas() {
     const { data, error } = await supabase
       .from("facturas")
       .select("*")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false });
     if (error) {
       toast.error("Error al cargar facturas");
@@ -326,6 +327,9 @@ export default function RegistroFacturas() {
                           </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8" title="Descargar registro JSON" onClick={() => downloadJson(f)}>
                             <FileCode className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Mover a papelera" onClick={() => moveToTrash(f)}>
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
