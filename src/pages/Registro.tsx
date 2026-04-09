@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
-import { Search, Download, FileText, FileCode, CalendarIcon, QrCode, Loader2, ArrowRightLeft, History, Eye } from "lucide-react";
+import { Search, Download, FileText, FileCode, CalendarIcon, QrCode, Loader2, ArrowRightLeft, History, Eye, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -44,6 +44,7 @@ export default function RegistroFacturas() {
     const { data, error } = await supabase
       .from("facturas")
       .select("*")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false });
     if (error) {
       toast.error("Error al cargar facturas");
@@ -55,6 +56,19 @@ export default function RegistroFacturas() {
   }, [user]);
 
   useEffect(() => { fetchFacturas(); }, [fetchFacturas]);
+
+  const moveToTrash = async (factura: Factura) => {
+    const { error } = await supabase
+      .from("facturas")
+      .update({ deleted_at: new Date().toISOString() } as any)
+      .eq("id", factura.id);
+    if (error) {
+      toast.error("Error al mover a la papelera");
+    } else {
+      toast.success(`Factura ${factura.numero_factura} movida a la papelera`);
+      fetchFacturas();
+    }
+  };
 
   const handleCambiarEstado = async (nuevoEstado: string, nota: string) => {
     if (!cambiarEstadoFactura) return;
@@ -326,6 +340,9 @@ export default function RegistroFacturas() {
                           </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8" title="Descargar registro JSON" onClick={() => downloadJson(f)}>
                             <FileCode className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Mover a papelera" onClick={() => moveToTrash(f)}>
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
