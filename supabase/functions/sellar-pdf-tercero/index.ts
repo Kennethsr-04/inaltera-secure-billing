@@ -96,12 +96,9 @@ Deno.serve(async (req) => {
     const huellaData = `${emisorNif}|${numeroFactura}|${fechaStr}|${pdfContentHash}`;
     const huella = await generarHuellaSHA256(huellaData);
 
-    // Generate QR URL
-    const qrUrl = `https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR?nif=${encodeURIComponent(
-      emisorNif
-    )}&numserie=${encodeURIComponent(numeroFactura)}&fecha=${encodeURIComponent(
-      fechaStr
-    )}&huella=${encodeURIComponent(huella)}`;
+    // Generate QR URL pointing to app verification page
+    const siteUrl = (formData.get("siteUrl") as string || "").replace(/\/+$/, "");
+    const qrUrl = `${siteUrl}/verificar?huella=${encodeURIComponent(huella)}`;
 
     // Generate QR code as PNG
     // Generate QR data matrix (no canvas needed)
