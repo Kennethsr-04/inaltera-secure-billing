@@ -58,8 +58,8 @@ async function generarHuellaSHA256(data: string): Promise<string> {
   return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
 
-function generarQrUrl(nif: string, numero: string, fecha: string, importe: string, huella: string): string {
-  return `https://www2.agenciatributaria.gob.es/wlpl/TIKE-CONT/ValidarQR?nif=${encodeURIComponent(nif)}&numserie=${encodeURIComponent(numero)}&fecha=${encodeURIComponent(fecha)}&importe=${encodeURIComponent(importe)}&huella=${encodeURIComponent(huella)}`;
+function generarQrUrl(siteUrl: string, huella: string): string {
+  return `${siteUrl}/verificar?huella=${encodeURIComponent(huella)}`;
 }
 
 Deno.serve(async (req) => {
@@ -93,14 +93,9 @@ Deno.serve(async (req) => {
     const huellaData = `${payload.emisorNif}|${numeroFactura}|${fechaStr}|${totales.total.toFixed(2)}`;
     const huella = await generarHuellaSHA256(huellaData);
 
-    // Generate QR URL (AEAT format)
-    const qrUrl = generarQrUrl(
-      payload.emisorNif || "B00000000",
-      numeroFactura,
-      fechaStr,
-      totales.total.toFixed(2),
-      huella
-    );
+    // Generate QR URL pointing to app verification page
+    const siteUrl = (payload.siteUrl || "").replace(/\/+$/, "");
+    const qrUrl = generarQrUrl(siteUrl, huella);
 
     // Generate QR code modules directly (no canvas needed in Deno)
     const qrData = QRCode.create(qrUrl, { errorCorrectionLevel: "H" });

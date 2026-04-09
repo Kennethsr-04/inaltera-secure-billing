@@ -378,6 +378,7 @@ export default function Facturacion() {
           emisorNombre: "",
           emisorNif: "",
           emisorDireccion: "",
+          siteUrl: window.location.origin,
         },
       });
 
@@ -496,6 +497,7 @@ export default function Facturacion() {
       formData.append("totalIrpf", String(extractedData.total_irpf));
       formData.append("total", String(extractedData.total));
       formData.append("descripcion", extractedData.descripcion);
+      formData.append("siteUrl", window.location.origin);
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("No hay sesión activa");
