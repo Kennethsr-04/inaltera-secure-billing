@@ -57,6 +57,19 @@ export default function RegistroFacturas() {
 
   useEffect(() => { fetchFacturas(); }, [fetchFacturas]);
 
+  const moveToTrash = async (factura: Factura) => {
+    const { error } = await supabase
+      .from("facturas")
+      .update({ deleted_at: new Date().toISOString() } as any)
+      .eq("id", factura.id);
+    if (error) {
+      toast.error("Error al mover a la papelera");
+    } else {
+      toast.success(`Factura ${factura.numero_factura} movida a la papelera`);
+      fetchFacturas();
+    }
+  };
+
   const handleCambiarEstado = async (nuevoEstado: string, nota: string) => {
     if (!cambiarEstadoFactura) return;
     const { data: { user: authUser } } = await supabase.auth.getUser();
