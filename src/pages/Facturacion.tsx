@@ -326,13 +326,13 @@ export default function Facturacion() {
     setLineas(lineas.map((l) => (l.id === id ? { ...l, [field]: value } : l)));
   };
 
-  const selectProducto = (lineaId: string, productoId: string) => {
-    const prod = mockProductos.find((p) => p.id === productoId);
-    if (prod) {
+  const selectProducto = (lineaId: string, servicioId: string) => {
+    const svc = servicios.find((s) => s.id === servicioId);
+    if (svc) {
       setLineas(
         lineas.map((l) =>
           l.id === lineaId
-            ? { ...l, productoId, descripcion: prod.descripcion, precioUnitario: prod.precio, tipoIva: prod.iva }
+            ? { ...l, productoId: servicioId, descripcion: svc.nombre + (svc.descripcion ? ` - ${svc.descripcion}` : ""), precioUnitario: svc.precio, tipoIva: svc.iva }
             : l
         )
       );
