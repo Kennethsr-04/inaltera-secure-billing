@@ -15,7 +15,7 @@ import { FilePlus, Upload, Plus, Trash2, FileUp, Download, FileText, Brain, Chec
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
-import { mockProductos } from "@/lib/mock-data";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
