@@ -128,7 +128,7 @@ export default function Servicios() {
                 <TableRow>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Descripción</TableHead>
-                  <TableHead className="text-right">Precio (€)</TableHead>
+                  <TableHead className="text-right">Base Imponible (€)</TableHead>
                   <TableHead className="text-right">IVA (%)</TableHead>
                   <TableHead className="w-[100px]">Acciones</TableHead>
                 </TableRow>
@@ -174,7 +174,7 @@ export default function Servicios() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="svc-precio">Precio (€)</Label>
+                <Label htmlFor="svc-precio">Base Imponible (€)</Label>
                 <Input id="svc-precio" type="number" min="0" step="0.01" value={form.precio} onChange={(e) => setForm({ ...form, precio: parseFloat(e.target.value) || 0 })} />
               </div>
               <div className="space-y-2">
