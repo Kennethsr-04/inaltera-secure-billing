@@ -693,9 +693,9 @@ export default function Facturacion() {
                                   <SelectValue placeholder="Seleccionar..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {mockProductos.map((p) => (
-                                    <SelectItem key={p.id} value={p.id}>
-                                      {p.descripcion}
+                                  {servicios.map((s) => (
+                                    <SelectItem key={s.id} value={s.id}>
+                                      {s.nombre}{s.descripcion ? ` - ${s.descripcion}` : ""} ({s.precio.toFixed(2)}€)
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
