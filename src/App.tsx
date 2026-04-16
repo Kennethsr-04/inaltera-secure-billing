@@ -14,7 +14,7 @@ import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import Perfil from "@/pages/Perfil";
 import Facturacion from "@/pages/Facturacion";
-import RegistroFacturas from "@/pages/Registro";
+
 import Datos from "@/pages/Datos";
 import Servicios from "@/pages/Servicios";
 import Papelera from "@/pages/Papelera";
@@ -57,16 +57,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/registro"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <RegistroFacturas />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/registro" element={<Navigate to="/facturacion" replace />} />
             <Route
               path="/datos"
               element={
