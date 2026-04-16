@@ -15,7 +15,7 @@ import { FilePlus, Upload, Plus, Trash2, FileUp, Download, FileText, Brain, Chec
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
-import { mockProductos } from "@/lib/mock-data";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -73,6 +73,30 @@ interface ExtractedInvoiceData {
   descripcion: string;
   layout_orientacion: "horizontal" | "vertical";
   layout_footer_libre: boolean;
+}
+
+interface Servicio {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  precio: number;
+  iva: number;
+}
+
+function useServicios() {
+  const [servicios, setServicios] = useState<Servicio[]>([]);
+
+  const fetchServicios = useCallback(async () => {
+    const { data } = await supabase
+      .from("servicios")
+      .select("id, nombre, descripcion, precio, iva")
+      .order("nombre");
+    if (data) setServicios(data);
+  }, []);
+
+  useEffect(() => { fetchServicios(); }, [fetchServicios]);
+
+  return { servicios, refetch: fetchServicios };
 }
 
 function useClientes() {
@@ -267,8 +291,8 @@ function ClienteCombobox({ value, onChange, clientes, onRefetch }: {
 export default function Facturacion() {
 
   const { token } = useAuth();
+  const { servicios } = useServicios();
 
-  // Clients
   const { clientes, refetch: refetchClientes } = useClientes();
 
   // Factura form state
@@ -302,13 +326,13 @@ export default function Facturacion() {
     setLineas(lineas.map((l) => (l.id === id ? { ...l, [field]: value } : l)));
   };
 
-  const selectProducto = (lineaId: string, productoId: string) => {
-    const prod = mockProductos.find((p) => p.id === productoId);
-    if (prod) {
+  const selectProducto = (lineaId: string, servicioId: string) => {
+    const svc = servicios.find((s) => s.id === servicioId);
+    if (svc) {
       setLineas(
         lineas.map((l) =>
           l.id === lineaId
-            ? { ...l, productoId, descripcion: prod.descripcion, precioUnitario: prod.precio, tipoIva: prod.iva }
+            ? { ...l, productoId: servicioId, descripcion: svc.nombre + (svc.descripcion ? ` - ${svc.descripcion}` : ""), precioUnitario: svc.precio, tipoIva: svc.iva }
             : l
         )
       );
@@ -669,9 +693,9 @@ export default function Facturacion() {
                                   <SelectValue placeholder="Seleccionar..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  {mockProductos.map((p) => (
-                                    <SelectItem key={p.id} value={p.id}>
-                                      {p.descripcion}
+                                  {servicios.map((s) => (
+                                    <SelectItem key={s.id} value={s.id}>
+                                      {s.nombre}{s.descripcion ? ` - ${s.descripcion}` : ""} ({s.precio.toFixed(2)}€)
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
