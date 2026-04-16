@@ -291,8 +291,8 @@ function ClienteCombobox({ value, onChange, clientes, onRefetch }: {
 export default function Facturacion() {
 
   const { token } = useAuth();
+  const { servicios } = useServicios();
 
-  // Clients
   const { clientes, refetch: refetchClientes } = useClientes();
 
   // Factura form state
