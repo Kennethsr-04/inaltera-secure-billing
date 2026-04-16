@@ -669,7 +669,7 @@ export default function Facturacion() {
                       <TableRow>
                         <TableHead className="min-w-[200px]">Producto / Descripción</TableHead>
                         <TableHead className="w-20">Cant.</TableHead>
-                        <TableHead className="w-24">Precio</TableHead>
+                        <TableHead className="w-24">Base Imponible</TableHead>
                         <TableHead className="w-20">Dto.%</TableHead>
                         <TableHead className="w-20">IVA%</TableHead>
                         <TableHead className="w-20">IRPF%</TableHead>
