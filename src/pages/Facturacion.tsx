@@ -75,6 +75,30 @@ interface ExtractedInvoiceData {
   layout_footer_libre: boolean;
 }
 
+interface Servicio {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  precio: number;
+  iva: number;
+}
+
+function useServicios() {
+  const [servicios, setServicios] = useState<Servicio[]>([]);
+
+  const fetchServicios = useCallback(async () => {
+    const { data } = await supabase
+      .from("servicios")
+      .select("id, nombre, descripcion, precio, iva")
+      .order("nombre");
+    if (data) setServicios(data);
+  }, []);
+
+  useEffect(() => { fetchServicios(); }, [fetchServicios]);
+
+  return { servicios, refetch: fetchServicios };
+}
+
 function useClientes() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
