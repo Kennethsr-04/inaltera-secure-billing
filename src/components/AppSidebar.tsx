@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const navItems = [
-  { title: "Datos de Empresa y Tarifas", url: "/perfil", icon: Building2 },
+  { title: "Datos de Empresa", url: "/perfil", icon: Building2 },
   { title: "Servicios", url: "/servicios", icon: Package },
   { title: "Facturación y Carga", url: "/facturacion", icon: FileText },
   { title: "Registro de Facturas", url: "/registro", icon: ClipboardList },
