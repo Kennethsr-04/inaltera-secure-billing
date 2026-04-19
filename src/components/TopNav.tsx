@@ -21,7 +21,7 @@ export function TopNav() {
   const { theme, toggleTheme } = useTheme();
 
   return (
-    <header className="h-14 border-b bg-card flex items-center px-4 gap-4 shrink-0">
+    <header className="glass-subtle h-14 flex items-center px-4 gap-4 shrink-0 sticky top-0 z-30">
       <InalteraLogo size="sm" />
 
       <nav className="flex items-center gap-1 flex-1 ml-4">

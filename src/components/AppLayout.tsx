@@ -22,7 +22,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <main className="flex-1 flex flex-col min-h-screen">
-          <header className="h-14 border-b flex items-center px-4 bg-card shrink-0 gap-2">
+          <header className="glass-subtle h-14 flex items-center px-4 shrink-0 gap-2 sticky top-0 z-30">
             <SidebarTrigger />
           </header>
           <div className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto">
