@@ -1136,6 +1136,24 @@ export default function Facturacion() {
               </div>
             )}
           </div>
+            </TabsContent>
+
+            <TabsContent value="csv">
+              <ImportTab
+                accept=".csv"
+                title="Cargar CSV"
+                description="Sube un archivo CSV. Acepta separador ',' o ';', decimales con punto o coma, y BOM UTF-8. Cada factura importada genera automáticamente su huella SHA-256 y código QR de verificación."
+              />
+            </TabsContent>
+
+            <TabsContent value="json">
+              <ImportTab
+                accept=".json"
+                title="Cargar JSON"
+                description="Sube un archivo JSON con un array de facturas. Cada factura importada genera automáticamente su huella SHA-256 y código QR de verificación."
+              />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         <TabsContent value="registro">
