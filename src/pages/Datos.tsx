@@ -516,6 +516,33 @@ function normalizeCsvRow(row: Record<string, string>): NormalizedRow {
   };
 }
 
+// Generate SHA-256 fingerprint for an imported invoice (deterministic by content + user)
+async function generarHuellaImportada(r: NormalizedRow, userId: string): Promise<string> {
+  const payload = [
+    userId,
+    r.numero_factura,
+    r.cliente_nif,
+    r.cliente_nombre,
+    r.base_imponible.toFixed(2),
+    r.total_iva.toFixed(2),
+    r.total_irpf.toFixed(2),
+    r.total_recargo.toFixed(2),
+    r.total.toFixed(2),
+    r.regimen_iva,
+    "importada",
+  ].join("|");
+  const buf = new TextEncoder().encode(payload);
+  const hashBuf = await crypto.subtle.digest("SHA-256", buf);
+  return Array.from(new Uint8Array(hashBuf))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function buildQrUrl(huella: string): string {
+  const origin = window.location.origin.replace(/\/+$/, "");
+  return `${origin}/verificar?huella=${encodeURIComponent(huella)}`;
+}
+
 function validateRow(r: NormalizedRow, idx: number): string | null {
   if (!r.numero_factura.trim()) return `Fila ${idx + 1}: falta nº de factura`;
   if (!r.cliente_nombre.trim()) return `Fila ${idx + 1}: falta nombre de cliente`;
