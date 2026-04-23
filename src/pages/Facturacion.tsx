@@ -521,6 +521,10 @@ export default function Facturacion() {
       formData.append("pdf", pdfFile);
       formData.append("emisorNif", extractedData.emisor_nif);
       formData.append("emisorNombre", extractedData.emisor_nombre);
+      formData.append("emisorDireccion", extractedData.emisor_direccion);
+      formData.append("clienteNombre", extractedData.cliente_nombre);
+      formData.append("clienteNif", extractedData.cliente_nif);
+      formData.append("clienteDireccion", extractedData.cliente_direccion);
       formData.append("layoutOrientacion", extractedData.layout_orientacion);
       formData.append("layoutFooterLibre", String(extractedData.layout_footer_libre));
       formData.append("baseImponible", String(extractedData.base_imponible));
