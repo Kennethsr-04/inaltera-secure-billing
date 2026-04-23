@@ -1,81 +1,68 @@
-# INALTERA — Tu solución NO-VERI*FACTU
 
-## Visión General
 
-Aplicación SPA profesional para gestión de facturación electrónica con cumplimiento fiscal español. Diseño limpio con paleta azul (#007bff), fondos claros, y componentes shadcn/ui. Responsive para móvil y escritorio.
+## Objetivo
 
----
+Permitir que cualquier persona (sin estar logueada) pueda **visualizar el código QR** de una factura y verificar sus datos, escaneando el QR impreso o accediendo al enlace.
 
-## 1. Identidad Visual y Layout Base
+## Estado actual
 
-- **Paleta de colores**: Primario azul brillante (#007bff), fondo gris claro, texto oscuro, acentos blancos
-- **Logo placeholder**: SVG con flecha en cuadrado azul apuntando arriba-derecha + texto "INALTERA"
-- **Eslogan**: "Tu solución NO-VERI*FACTU" visible en login y sidebar
-- **Layout principal**: Sidebar colapsable con navegación + área de contenido principal
+- La ruta `/verificar?huella=...` **ya es pública** (no está dentro de `ProtectedRoute` en `App.tsx`).
+- La edge function `verificar-factura` **ya funciona sin login**: usa `SERVICE_ROLE_KEY` para saltarse RLS y devolver los datos por `huella_hash` o `numero_factura`.
+- Lo que **falta**: la página `/verificar` muestra los datos de la factura pero **no renderiza el QR visualmente**. El QR solo es visible actualmente desde `Registro.tsx` y `Facturacion.tsx`, que están detrás del login.
 
-## 2. Módulo de Autenticación
+## Cambios propuestos
 
-- **Página de Login**: Email + contraseña, botón de acceso, enlace a registro
-- **Página de Registro**: Email + contraseña + confirmación, validación con zod
-- **Gestión de token**: Almacenamiento en localStorage, interceptor para añadir token a peticiones API
-- **Rutas protegidas**: Redirección automática a login si no hay sesión activa
-- **Conexión API**: POST a endpoints de login/registro reales; mock para respuestas no disponibles
+### 1. Mostrar el QR en la página pública `/verificar`
 
-## 3. Navegación Principal (Post-login)
+En `src/pages/VerificarFactura.tsx`:
 
-- **Sidebar** con tres secciones:
-  1. 🏢 Datos de la Empresa y Tarifas
-  2. 📄 Facturación y Carga
-  3. 📋 Registro de Facturas
-- Indicador visual de la sección activa
-- Colapsable en móvil con hamburger menu
+- Importar `QRCodeSVG` desde `qrcode.react`.
+- Añadir una nueva tarjeta visual con el QR generado a partir de `factura.qr_url`, justo después de la tarjeta de "Factura verificada".
+- Incluir un botón "Descargar QR" que exporte el SVG como PNG (mismo patrón que ya se usa en `Registro.tsx`).
+- Mostrar también el enlace de verificación en texto, por si el usuario quiere copiarlo.
 
-## 4. Vista: Datos de la Empresa y Tarifas
+```text
+┌─────────────────────────────┐
+│ ✅ Factura verificada       │
+├─────────────────────────────┤
+│   ┌─────────────────┐       │
+│   │  ███ ▄▄▄ ███    │       │
+│   │  ██ QR HERE ██  │       │
+│   │  ███ ▀▀▀ ███    │       │
+│   └─────────────────┘       │
+│   [ Descargar QR ]          │
+├─────────────────────────────┤
+│ Nº Factura · Estado         │
+│ Importe total               │
+│ Fecha · Régimen · Cliente   │
+│ Desglose fiscal             │
+│ Huella SHA-256              │
+└─────────────────────────────┘
+```
 
-### Pestaña A — Datos Fiscales
+### 2. Acceso directo por número de factura (opcional pero útil)
 
-- Formulario: Razón Social, NIF (validación formato español), Domicilio Fiscal (dirección, CP, ciudad, provincia)
-- Validación completa con zod
-- Envío a POST /user/profile (mock si no disponible)
+La edge function ya soporta `?numero=...`. Añadir en la página un pequeño formulario al inicio (cuando no hay parámetros) para que un usuario externo pueda introducir un número de factura y verificarla manualmente, sin necesidad del enlace QR.
 
-### Pestaña B — Gestión de Tarifas
+### 3. Confirmar que no hay barreras de auth
 
-- Tabla/cards con planes: Gratuito (0-5 facturas), 9€ (6-10), 15€ (11-20)
-- Contador de facturas actual del usuario (GET /user/subscription/status, mock disponible)
-- Botón "Suscribirse/Cambiar Plan" con simulación de pasarela de pago
-- Indicador visual del plan activo
+- Verificar que `App.tsx` mantiene `<Route path="/verificar" element={<VerificarFactura />} />` **fuera** de `ProtectedRoute` (ya lo está).
+- La llamada `fetch` a la edge function ya envía solo `apikey` (publishable), sin `Authorization`, por lo que funciona sin sesión.
+- No se requieren cambios en RLS ni en la edge function.
 
-## 5. Vista: Facturación y Carga
+## Detalles técnicos
 
-### Pestaña A — Elaborar Factura (campos completos)
+- **Componente QR**: `QRCodeSVG` con `value={factura.qr_url}`, `size={200}`, `level="H"`, fondo blanco para máximo contraste de escaneo.
+- **Descarga PNG**: serializar el SVG, dibujarlo en un `<canvas>` y disparar descarga vía `toDataURL("image/png")`.
+- **Sin cambios en backend**: la función `verificar-factura` ya devuelve `qr_url` en su `select`.
+- **Sin cambios en BD**: `qr_url` y `huella_hash` ya se guardan al crear/importar facturas.
 
-- **Datos emisor**: Prellenados desde perfil
-- **Datos cliente**: Selector con autocompletado (GET /catalog/clientes), opción crear nuevo
-- **Tipo de factura**: Completa, simplificada, rectificativa
-- **Líneas de producto**: Tabla editable con autocompletado (GET /catalog/productos), cantidad, precio unitario, descuento
-- **Impuestos**: Tipo IVA (21%, 10%, 4%, exento), régimen IVA, retención IRPF (%), recargo de equivalencia
-- **Totales**: Cálculo automático (base imponible, cuota IVA, retenciones, total)
-- **Botón "Generar y Sellar Factura"**: POST /factura/emitir → muestra confirmación con ID de registro y enlace al PDF
+## Resultado para el usuario final
 
-### Pestaña B — Carga de Facturas de Terceros
+Cualquiera que escanee el QR de una factura impresa (o reciba el enlace `https://.../verificar?huella=...`) verá:
+1. Sello de "Factura verificada".
+2. **El propio QR renderizado** con opción de descarga.
+3. Datos fiscales completos y huella SHA-256.
 
-- Zona drag-and-drop para archivos PDF (solo PDF permitido)
-- Vista previa del nombre del archivo
-- **Botón "Cargar y Sellar PDF"**: POST /factura/cargar_pdf → confirmación con PDF sellado con QR
+Sin necesidad de cuenta, sin login, sin fricción.
 
-## 6. Vista: Registro de Facturas
-
-- **Tabla de datos** con columnas: Fecha, Tipo, Número, Cliente, Total (€), Estado de Trazabilidad, Acciones
-- **Buscador**: Campo de texto para búsqueda por contenido
-- **Filtros de fecha**: Selector "Desde" y "Hasta" con date pickers
-- **Acciones por fila**: Iconos para descargar PDF (con QR) y descargar registro XML/JSON
-- **Paginación** de resultados
-- Datos de GET /registro/listado con parámetros de búsqueda y filtro
-
-## 7. Infraestructura Técnica
-
-- **Servicio API centralizado** con axios/fetch, base URL configurable, interceptor de autenticación
-- **Sistema mock**: Datos simulados para endpoints no disponibles, fácil de desactivar cuando la API esté lista
-- **React Query** para caché y gestión de estado del servidor
-- **React Router** para navegación SPA con rutas protegidas
-- **Validación** con zod en todos los formularios
