@@ -256,6 +256,74 @@ function pick(row: Record<string, any>, ...keys: string[]): any {
   return "";
 }
 
+// Normalize a header/key for fuzzy matching:
+// lowercase, strip accents, drop non-alphanumerics → "Nº Factura" => "nfactura"
+function normKey(s: string): string {
+  return s
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+// Detect the invoice number from any of its many possible header variants.
+// Recognises: numero_factura, num_factura, nº factura, n° factura, nro, no.,
+// id, id_factura, factura_id, invoice, invoice_id, invoice_number, invoice_no,
+// ref, referencia, reference, codigo, code, folio, serie+numero, etc.
+function detectInvoiceNumber(row: Record<string, any>): string {
+  // 1) Direct + canonical aliases (highest priority)
+  const direct = pick(
+    row,
+    "numero_factura", "num_factura", "n_factura", "nro_factura",
+    "numero", "nro", "num", "no", "n",
+    "id_factura", "factura_id", "id", "uuid",
+    "invoice", "invoice_id", "invoice_no", "invoice_number", "invoicenumber", "invoiceid",
+    "ref", "referencia", "reference", "ref_factura",
+    "codigo", "codigo_factura", "code",
+    "folio", "folio_factura", "documento", "doc", "doc_id", "n_documento"
+  );
+  if (direct) return String(direct).trim();
+
+  // 2) Fuzzy match on normalized header names
+  const scored: { key: string; value: any; score: number }[] = [];
+  for (const [key, value] of Object.entries(row)) {
+    if (value === undefined || value === null || value === "") continue;
+    const nk = normKey(key);
+    let score = 0;
+
+    if (nk.includes("factura") || nk.includes("invoice") || nk.includes("folio")) score += 5;
+    if (/^(n|no|num|nro|nfactura|nrofactura)$/.test(nk)) score += 4;
+    if (nk.includes("numero") || nk.startsWith("num")) score += 3;
+    if (nk === "id" || nk.endsWith("id") || nk.startsWith("id")) score += 2;
+    if (nk.includes("ref") || nk.includes("codigo") || nk.includes("code")) score += 2;
+    if (nk.includes("documento") || nk.startsWith("doc")) score += 1;
+
+    // Penalise fields that are clearly not the invoice number
+    if (nk.includes("cliente") || nk.includes("client") ||
+        nk.includes("nif") || nk.includes("cif") || nk.includes("dni") ||
+        nk.includes("user") || nk.includes("usuario") ||
+        nk.includes("fecha") || nk.includes("date") ||
+        nk.includes("total") || nk.includes("base") || nk.includes("iva") ||
+        nk.includes("irpf") || nk.includes("importe") || nk.includes("amount")) {
+      score -= 5;
+    }
+
+    if (score > 0) scored.push({ key, value, score });
+  }
+
+  if (scored.length === 0) return "";
+  scored.sort((a, b) => b.score - a.score);
+  const value = String(scored[0].value).trim();
+
+  // 3) Optional serie/series prefix concatenation (e.g. "A" + "2024/001" → "A-2024/001")
+  const serie = pick(row, "serie", "series", "serie_factura", "prefix", "prefijo");
+  if (serie && !value.toLowerCase().includes(String(serie).toLowerCase())) {
+    return `${String(serie).trim()}-${value}`;
+  }
+  return value;
+}
+
 function normalizeJsonItem(item: any): NormalizedRow {
   const cliente = item.cliente ?? {};
   const importes = item.importes ?? {};
@@ -263,7 +331,7 @@ function normalizeJsonItem(item: any): NormalizedRow {
   const tipoOk = VALID_TIPOS.includes(tipo) ? tipo : "completa";
 
   return {
-    numero_factura: String(pick(item, "numero_factura", "numero", "num_factura") || ""),
+    numero_factura: detectInvoiceNumber({ ...item, ...cliente }),
     tipo: tipoOk,
     cliente_nombre: String(pick(cliente, "nombre") || pick(item, "cliente_nombre") || ""),
     cliente_nif: String(pick(cliente, "nif", "cif", "dni") || pick(item, "cliente_nif") || ""),
@@ -282,7 +350,7 @@ function normalizeCsvRow(row: Record<string, string>): NormalizedRow {
   const tipoOk = VALID_TIPOS.includes(tipoRaw) ? tipoRaw : "completa";
 
   return {
-    numero_factura: String(pick(row, "numero_factura", "numero", "num_factura") || ""),
+    numero_factura: detectInvoiceNumber(row),
     tipo: tipoOk,
     cliente_nombre: String(pick(row, "cliente_nombre", "cliente", "nombre") || ""),
     cliente_nif: String(pick(row, "cliente_nif", "nif", "cif") || ""),
