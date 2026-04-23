@@ -374,7 +374,7 @@ export default function RegistroFacturas() {
           <div className="flex flex-col items-center gap-4 py-4">
             <div className="bg-white p-4 rounded-lg border" id="registro-qr-container">
               <QRCodeSVG
-                value={selectedQr?.verifactu_url ?? ""}
+                value={selectedQr?.verifactu_url ?? selectedQr?.qr_url ?? ""}
                 size={200}
                 level="H"
                 includeMargin
