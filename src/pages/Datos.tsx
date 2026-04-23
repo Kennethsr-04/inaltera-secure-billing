@@ -767,6 +767,21 @@ function ImportTab() {
                     <AlertCircle className="h-3 w-3 mr-1" />{validationErrors.length} con error
                   </Badge>
                 )}
+                {qrReadyCount > 0 && (
+                  <Badge className="bg-primary/10 text-primary border-primary/20">
+                    <QrCode className="h-3 w-3 mr-1" />{qrReadyCount} QR listos
+                  </Badge>
+                )}
+                {qrPendingCount > 0 && qrPendingCount !== rows.length && (
+                  <Badge variant="secondary">
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />{qrPendingCount} calculando QR
+                  </Badge>
+                )}
+                {qrErrorCount > 0 && (
+                  <Badge variant="destructive">
+                    <ShieldAlert className="h-3 w-3 mr-1" />{qrErrorCount} QR con error
+                  </Badge>
+                )}
                 {result && (
                   <>
                     <Badge className="bg-success/10 text-success border-success/20">
