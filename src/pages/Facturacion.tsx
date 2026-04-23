@@ -882,6 +882,10 @@ export default function Facturacion() {
                 <FileUp className="h-4 w-4" />
                 Cargar PDF
               </TabsTrigger>
+              <TabsTrigger value="bloque" className="gap-2">
+                <Layers className="h-4 w-4" />
+                Carga en Bloque
+              </TabsTrigger>
               <TabsTrigger value="csv" className="gap-2">
                 <FileSpreadsheet className="h-4 w-4" />
                 Cargar CSV
