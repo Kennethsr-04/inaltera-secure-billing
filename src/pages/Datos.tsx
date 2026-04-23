@@ -350,7 +350,7 @@ function normalizeCsvRow(row: Record<string, string>): NormalizedRow {
   const tipoOk = VALID_TIPOS.includes(tipoRaw) ? tipoRaw : "completa";
 
   return {
-    numero_factura: String(pick(row, "numero_factura", "numero", "num_factura") || ""),
+    numero_factura: detectInvoiceNumber(row),
     tipo: tipoOk,
     cliente_nombre: String(pick(row, "cliente_nombre", "cliente", "nombre") || ""),
     cliente_nif: String(pick(row, "cliente_nif", "nif", "cif") || ""),
