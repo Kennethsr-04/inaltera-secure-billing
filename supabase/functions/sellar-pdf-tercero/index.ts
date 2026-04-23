@@ -209,14 +209,19 @@ Deno.serve(async (req) => {
       console.error("Upload error:", uploadError);
     }
 
-    // Save record to database
+    // Build observaciones with emisor info preserved
+    const emisorInfo = `Emisor: ${emisorNombre || "N/D"} (NIF: ${emisorNif || "N/D"})${emisorDireccion ? ` — ${emisorDireccion}` : ""}`;
+    const observacionesFinal = [emisorInfo, descripcion].filter(Boolean).join("\n");
+
+    // Save record to database — store CLIENT (receptor) as cliente_*
     const { error: dbError } = await supabase.from("facturas").insert({
       user_id: user.id,
       numero_factura: numeroFactura,
       tipo: "tercero",
       origen: "cargada",
-      cliente_nombre: emisorNombre || pdfFile.name.replace(".pdf", ""),
-      cliente_nif: emisorNif || "N/A",
+      cliente_nombre: clienteNombre || pdfFile.name.replace(".pdf", ""),
+      cliente_nif: clienteNif || "N/A",
+      cliente_direccion: clienteDireccion || null,
       regimen_iva: "general",
       lineas: [],
       base_imponible: baseImponible,
@@ -227,11 +232,30 @@ Deno.serve(async (req) => {
       huella_hash: huella,
       qr_url: qrUrl,
       pdf_path: pdfPath,
-      observaciones: descripcion || null,
+      observaciones: observacionesFinal || null,
     });
 
     if (dbError) {
       console.error("DB error:", dbError);
+    }
+
+    // Auto-create or update client in clientes table for future reuse
+    if (clienteNif && clienteNombre) {
+      const { data: existingClient } = await supabase
+        .from("clientes")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("nif", clienteNif)
+        .maybeSingle();
+
+      if (!existingClient) {
+        await supabase.from("clientes").insert({
+          user_id: user.id,
+          nombre: clienteNombre,
+          nif: clienteNif,
+          direccion: clienteDireccion || null,
+        });
+      }
     }
 
     // Return sealed PDF as base64
