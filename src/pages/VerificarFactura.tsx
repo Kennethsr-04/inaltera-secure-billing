@@ -209,6 +209,41 @@ export default function VerificarFactura() {
           </CardContent>
         </Card>
 
+        {/* Código QR de la factura */}
+        {factura.qr_url && (
+          <Card>
+            <CardContent className="pt-6 pb-5 flex flex-col items-center gap-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <QrCode className="h-4 w-4 text-primary" />
+                Código QR de verificación
+              </div>
+              <div
+                ref={qrContainerRef}
+                className="bg-white p-3 rounded-lg border"
+              >
+                <QRCodeSVG
+                  value={factura.qr_url}
+                  size={180}
+                  level="H"
+                  includeMargin={false}
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground text-center break-all max-w-[280px] font-mono">
+                {factura.qr_url}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadQr}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Descargar QR
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Datos principales */}
         <Card>
           <CardContent className="pt-6 space-y-5">
