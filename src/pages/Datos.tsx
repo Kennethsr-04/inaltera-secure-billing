@@ -1120,19 +1120,15 @@ export default function Datos() {
       </div>
 
       <Tabs defaultValue="exportar" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="exportar" className="gap-1.5">
             <Download className="h-4 w-4" /> Exportar
-          </TabsTrigger>
-          <TabsTrigger value="importar" className="gap-1.5">
-            <Upload className="h-4 w-4" /> Importar
           </TabsTrigger>
           <TabsTrigger value="conexion" className="gap-1.5">
             <Database className="h-4 w-4" /> BD Externa
           </TabsTrigger>
         </TabsList>
         <TabsContent value="exportar"><ExportTab /></TabsContent>
-        <TabsContent value="importar"><ImportTab /></TabsContent>
         <TabsContent value="conexion"><ConexionExternaTab /></TabsContent>
       </Tabs>
     </div>
