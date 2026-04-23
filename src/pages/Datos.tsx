@@ -692,7 +692,7 @@ function ImportTab() {
             Importar Facturas
           </CardTitle>
           <CardDescription>
-            Sube un archivo CSV o JSON. Acepta separador "," o ";", decimales con punto o coma, y BOM UTF-8.
+            Sube un archivo CSV o JSON. Acepta separador "," o ";", decimales con punto o coma, y BOM UTF-8. Cada factura importada genera automáticamente su huella SHA-256 y código QR de verificación.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
