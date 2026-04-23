@@ -732,10 +732,10 @@ export function ImportTab({ accept = ".csv,.json", title, description }: { accep
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
             <Upload className="h-5 w-5 text-primary" />
-            Importar Facturas
+            {title ?? "Importar Facturas"}
           </CardTitle>
           <CardDescription>
-            Sube un archivo CSV o JSON. Acepta separador "," o ";", decimales con punto o coma, y BOM UTF-8. Cada factura importada genera automáticamente su huella SHA-256 y código QR de verificación.
+            {description ?? "Sube un archivo CSV o JSON. Acepta separador \",\" o \";\", decimales con punto o coma, y BOM UTF-8. Cada factura importada genera automáticamente su huella SHA-256 y código QR de verificación."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -744,12 +744,12 @@ export function ImportTab({ accept = ".csv,.json", title, description }: { accep
             onClick={() => fileRef.current?.click()}
           >
             <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-            <p className="text-sm font-medium">{file ? file.name : "Haz clic o arrastra un archivo CSV / JSON"}</p>
-            <p className="text-xs text-muted-foreground mt-1">Formatos soportados: .csv, .json</p>
+            <p className="text-sm font-medium">{file ? file.name : `Haz clic o arrastra un archivo ${accept.replace(/\./g, "").toUpperCase()}`}</p>
+            <p className="text-xs text-muted-foreground mt-1">Formatos soportados: {accept}</p>
             <input
               ref={fileRef}
               type="file"
-              accept=".csv,.json,application/json,text/csv"
+              accept={accept}
               className="hidden"
               onChange={handleFile}
             />
