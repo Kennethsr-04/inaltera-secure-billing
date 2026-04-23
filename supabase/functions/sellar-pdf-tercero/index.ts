@@ -57,6 +57,10 @@ Deno.serve(async (req) => {
     const pdfFile = formData.get("pdf") as File | null;
     const emisorNif = (formData.get("emisorNif") as string) || "B00000000";
     const emisorNombre = (formData.get("emisorNombre") as string) || "";
+    const emisorDireccion = (formData.get("emisorDireccion") as string) || "";
+    const clienteNombre = (formData.get("clienteNombre") as string) || "";
+    const clienteNif = (formData.get("clienteNif") as string) || "";
+    const clienteDireccion = (formData.get("clienteDireccion") as string) || "";
     const layoutOrientacion = (formData.get("layoutOrientacion") as string) || "vertical";
     const layoutFooterLibre = formData.get("layoutFooterLibre") === "true";
     const baseImponible = parseFloat(formData.get("baseImponible") as string) || 0;
