@@ -11,8 +11,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { FilePlus, Upload, Plus, Trash2, FileUp, Download, FileText, Brain, CheckCircle, Edit2, ChevronsUpDown, Check, UserPlus, Loader2, Eye, EyeOff, ClipboardList } from "lucide-react";
+import { FilePlus, Upload, Plus, Trash2, FileUp, Download, FileText, Brain, CheckCircle, Edit2, ChevronsUpDown, Check, UserPlus, Loader2, Eye, EyeOff, ClipboardList, FileSpreadsheet, FileJson } from "lucide-react";
 const RegistroFacturas = lazy(() => import("@/pages/Registro"));
+import { ImportTab } from "@/pages/Datos";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
@@ -615,7 +616,7 @@ export default function Facturacion() {
           </TabsTrigger>
           <TabsTrigger value="cargar" className="gap-2">
             <Upload className="h-4 w-4" />
-            Cargar PDF
+            Cargar
           </TabsTrigger>
           <TabsTrigger value="registro" className="gap-2">
             <ClipboardList className="h-4 w-4" />
@@ -874,6 +875,23 @@ export default function Facturacion() {
         </TabsContent>
 
         <TabsContent value="cargar">
+          <Tabs defaultValue="pdf" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="pdf" className="gap-2">
+                <FileUp className="h-4 w-4" />
+                Cargar PDF
+              </TabsTrigger>
+              <TabsTrigger value="csv" className="gap-2">
+                <FileSpreadsheet className="h-4 w-4" />
+                Cargar CSV
+              </TabsTrigger>
+              <TabsTrigger value="json" className="gap-2">
+                <FileJson className="h-4 w-4" />
+                Cargar JSON
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="pdf">
           <div className="flex gap-4">
             {/* Left side: steps */}
             <div className={cn("space-y-4 transition-all", showPreview && pdfPreviewUrl ? "w-1/2" : "w-full")}>
@@ -1118,6 +1136,24 @@ export default function Facturacion() {
               </div>
             )}
           </div>
+            </TabsContent>
+
+            <TabsContent value="csv">
+              <ImportTab
+                accept=".csv"
+                title="Cargar CSV"
+                description="Sube un archivo CSV. Acepta separador ',' o ';', decimales con punto o coma, y BOM UTF-8. Cada factura importada genera automáticamente su huella SHA-256 y código QR de verificación."
+              />
+            </TabsContent>
+
+            <TabsContent value="json">
+              <ImportTab
+                accept=".json"
+                title="Cargar JSON"
+                description="Sube un archivo JSON con un array de facturas. Cada factura importada genera automáticamente su huella SHA-256 y código QR de verificación."
+              />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         <TabsContent value="registro">
