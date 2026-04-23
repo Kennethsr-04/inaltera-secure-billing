@@ -56,9 +56,12 @@ Deno.serve(async (req) => {
     const systemPrompt = `Eres un experto en extracción de datos de facturas españolas. Analiza el contenido del PDF proporcionado y extrae los datos estructurados de la factura.
 
 Debes extraer:
-- emisor_nombre: Nombre o razón social del emisor
+- emisor_nombre: Nombre o razón social del emisor (quien emite la factura)
 - emisor_nif: NIF/CIF del emisor
 - emisor_direccion: Dirección del emisor
+- cliente_nombre: Nombre o razón social del cliente / receptor / destinatario de la factura
+- cliente_nif: NIF/CIF del cliente / receptor
+- cliente_direccion: Dirección del cliente / receptor
 - numero_factura: Número de la factura original
 - fecha_emision: Fecha de emisión (formato DD-MM-YYYY)
 - base_imponible: Base imponible total (número)
@@ -109,6 +112,9 @@ Si no puedes extraer algún campo, usa null.`;
                   emisor_nombre: { type: "string", description: "Nombre del emisor" },
                   emisor_nif: { type: "string", description: "NIF/CIF del emisor" },
                   emisor_direccion: { type: "string", description: "Dirección del emisor" },
+                  cliente_nombre: { type: "string", description: "Nombre del cliente / receptor de la factura" },
+                  cliente_nif: { type: "string", description: "NIF/CIF del cliente / receptor" },
+                  cliente_direccion: { type: "string", description: "Dirección del cliente / receptor" },
                   numero_factura: { type: "string", description: "Número de factura original" },
                   fecha_emision: { type: "string", description: "Fecha de emisión DD-MM-YYYY" },
                   base_imponible: { type: "number", description: "Base imponible total" },

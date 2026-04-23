@@ -64,6 +64,9 @@ interface ExtractedInvoiceData {
   emisor_nombre: string;
   emisor_nif: string;
   emisor_direccion: string;
+  cliente_nombre: string;
+  cliente_nif: string;
+  cliente_direccion: string;
   numero_factura: string;
   fecha_emision: string;
   base_imponible: number;
@@ -486,6 +489,9 @@ export default function Facturacion() {
         emisor_nombre: data.extracted.emisor_nombre || "",
         emisor_nif: data.extracted.emisor_nif || "",
         emisor_direccion: data.extracted.emisor_direccion || "",
+        cliente_nombre: data.extracted.cliente_nombre || "",
+        cliente_nif: data.extracted.cliente_nif || "",
+        cliente_direccion: data.extracted.cliente_direccion || "",
         numero_factura: data.extracted.numero_factura || "",
         fecha_emision: data.extracted.fecha_emision || "",
         base_imponible: data.extracted.base_imponible || 0,
@@ -515,6 +521,10 @@ export default function Facturacion() {
       formData.append("pdf", pdfFile);
       formData.append("emisorNif", extractedData.emisor_nif);
       formData.append("emisorNombre", extractedData.emisor_nombre);
+      formData.append("emisorDireccion", extractedData.emisor_direccion);
+      formData.append("clienteNombre", extractedData.cliente_nombre);
+      formData.append("clienteNif", extractedData.cliente_nif);
+      formData.append("clienteDireccion", extractedData.cliente_direccion);
       formData.append("layoutOrientacion", extractedData.layout_orientacion);
       formData.append("layoutFooterLibre", String(extractedData.layout_footer_libre));
       formData.append("baseImponible", String(extractedData.base_imponible));
@@ -975,6 +985,27 @@ export default function Facturacion() {
                         <Label>Dirección del emisor</Label>
                         <Input value={extractedData.emisor_direccion} onChange={(e) => setExtractedData({ ...extractedData, emisor_direccion: e.target.value })} />
                       </div>
+                    </div>
+                    <div className="border-t pt-4">
+                      <h4 className="font-medium mb-3">Datos del Cliente (Receptor)</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Cliente (Nombre)</Label>
+                          <Input value={extractedData.cliente_nombre} onChange={(e) => setExtractedData({ ...extractedData, cliente_nombre: e.target.value })} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Cliente (NIF/CIF)</Label>
+                          <Input value={extractedData.cliente_nif} onChange={(e) => setExtractedData({ ...extractedData, cliente_nif: e.target.value })} />
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                          <Label>Dirección del cliente</Label>
+                          <Input value={extractedData.cliente_direccion} onChange={(e) => setExtractedData({ ...extractedData, cliente_direccion: e.target.value })} />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="border-t pt-4">
+                      <h4 className="font-medium mb-3">Datos de la Factura</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Nº Factura Original</Label>
                         <Input value={extractedData.numero_factura} onChange={(e) => setExtractedData({ ...extractedData, numero_factura: e.target.value })} />
@@ -982,6 +1013,7 @@ export default function Facturacion() {
                       <div className="space-y-2">
                         <Label>Fecha de Emisión</Label>
                         <Input value={extractedData.fecha_emision} onChange={(e) => setExtractedData({ ...extractedData, fecha_emision: e.target.value })} />
+                      </div>
                       </div>
                     </div>
                     <div className="border-t pt-4">
