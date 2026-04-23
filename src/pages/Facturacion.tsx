@@ -64,6 +64,9 @@ interface ExtractedInvoiceData {
   emisor_nombre: string;
   emisor_nif: string;
   emisor_direccion: string;
+  cliente_nombre: string;
+  cliente_nif: string;
+  cliente_direccion: string;
   numero_factura: string;
   fecha_emision: string;
   base_imponible: number;
