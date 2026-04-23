@@ -47,20 +47,27 @@ const estadoConfig: Record<string, { label: string; className: string }> = {
 };
 
 export default function VerificarFactura() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [factura, setFactura] = useState<FacturaPublica | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [manualNumero, setManualNumero] = useState("");
+  const qrContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const huella = searchParams.get("huella");
     const numero = searchParams.get("numero");
 
     if (!huella && !numero) {
-      setError("No se proporcionó identificador de factura.");
+      setError(null);
+      setFactura(null);
       setLoading(false);
       return;
     }
+
+    setLoading(true);
+    setError(null);
+    setFactura(null);
 
     const params = new URLSearchParams();
     if (huella) params.set("huella", huella);
@@ -78,6 +85,40 @@ export default function VerificarFactura() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [searchParams]);
+
+  const handleManualSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const value = manualNumero.trim();
+    if (!value) return;
+    setSearchParams({ numero: value });
+  };
+
+  const handleDownloadQr = () => {
+    if (!factura?.qr_url || !qrContainerRef.current) return;
+    const svg = qrContainerRef.current.querySelector("svg");
+    if (!svg) return;
+    const svgString = new XMLSerializer().serializeToString(svg);
+    const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const size = 512;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, size, size);
+      ctx.drawImage(img, 0, 0, size, size);
+      const link = document.createElement("a");
+      link.download = `qr-factura-${factura.numero_factura}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  };
 
   const fmt = (n: number) =>
     new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(n);
