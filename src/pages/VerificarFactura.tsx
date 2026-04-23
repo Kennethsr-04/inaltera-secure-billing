@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { QRCodeSVG } from "qrcode.react";
 import {
   CheckCircle,
   XCircle,
@@ -10,11 +13,12 @@ import {
   Loader2,
   ShieldCheck,
   Calendar,
-  Hash,
-  Euro,
   Building2,
   User,
   Receipt,
+  QrCode,
+  Download,
+  Search,
 } from "lucide-react";
 
 interface FacturaPublica {
