@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Upload, FileJson, FileSpreadsheet, FileText, Database, Loader2, CheckCircle2, AlertCircle, ArrowUpDown, Link2 } from "lucide-react";
+import { Download, Upload, FileJson, FileSpreadsheet, FileText, Database, Loader2, CheckCircle2, AlertCircle, ArrowUpDown, Link2, QrCode, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
