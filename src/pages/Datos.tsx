@@ -887,9 +887,9 @@ function ImportTab() {
               )}
 
               <div className="flex gap-2">
-                <Button onClick={handleImport} disabled={importing || !!result || validCount === 0}>
+                <Button onClick={handleImport} disabled={importing || !!result || importableCount === 0}>
                   {importing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-                  Importar {validCount} facturas
+                  Importar {importableCount} facturas
                 </Button>
                 {(result || rows.length > 0) && (
                   <Button variant="outline" onClick={() => { setFile(null); reset(); if (fileRef.current) fileRef.current.value = ""; }}>
