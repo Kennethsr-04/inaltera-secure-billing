@@ -1115,8 +1115,8 @@ export default function Datos() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-display font-bold text-foreground">Importar / Exportar Datos</h1>
-        <p className="text-muted-foreground">Conecta con bases de datos externas o transfiere datos en CSV, JSON o PDF</p>
+        <h1 className="text-2xl font-display font-bold text-foreground">Exportar Datos</h1>
+        <p className="text-muted-foreground">Conecta con bases de datos externas o exporta tus facturas en CSV, JSON o PDF</p>
       </div>
 
       <Tabs defaultValue="exportar" className="w-full">

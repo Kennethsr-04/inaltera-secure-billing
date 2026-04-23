@@ -25,7 +25,7 @@ const navItems = [
   { title: "Servicios", url: "/servicios", icon: Package },
   { title: "Facturación y Carga", url: "/facturacion", icon: FileText },
   { title: "Papelera", url: "/papelera", icon: Trash2 },
-  { title: "Importar / Exportar", url: "/datos", icon: ArrowUpDown },
+  { title: "Exportar", url: "/datos", icon: ArrowUpDown },
 ];
 
 export function AppSidebar() {
