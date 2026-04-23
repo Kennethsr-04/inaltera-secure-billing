@@ -807,6 +807,20 @@ function ImportTab() {
                 </div>
               )}
 
+              {qrErrors.length > 0 && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs space-y-1 max-h-32 overflow-y-auto">
+                  <p className="font-medium text-destructive mb-1 flex items-center gap-1">
+                    <ShieldAlert className="h-3 w-3" /> Errores al generar QR / huella:
+                  </p>
+                  {qrErrors.slice(0, 10).map((e, i) => (
+                    <p key={i} className="text-destructive">• {e}</p>
+                  ))}
+                  {qrErrors.length > 10 && (
+                    <p className="text-muted-foreground">…y {qrErrors.length - 10} más</p>
+                  )}
+                </div>
+              )}
+
               {result && result.messages.length > 0 && (
                 <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs space-y-1 max-h-32 overflow-y-auto">
                   <p className="font-medium text-destructive mb-1">Errores de inserción:</p>
@@ -823,11 +837,13 @@ function ImportTab() {
                       <TableHead>NIF</TableHead>
                       <TableHead className="text-right">Base</TableHead>
                       <TableHead className="text-right">Total</TableHead>
+                      <TableHead>QR</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {rows.slice(0, 20).map((row, i) => {
                       const err = validateRow(row, i);
+                      const qr = qrStates[i];
                       return (
                         <TableRow key={i} className={err ? "bg-destructive/5" : ""}>
                           <TableCell className="font-mono text-sm">{row.numero_factura || "—"}</TableCell>
@@ -835,6 +851,23 @@ function ImportTab() {
                           <TableCell className="text-sm">{row.cliente_nif || "—"}</TableCell>
                           <TableCell className="text-right text-sm">{row.base_imponible.toFixed(2)}€</TableCell>
                           <TableCell className="text-right text-sm">{row.total.toFixed(2)}€</TableCell>
+                          <TableCell>
+                            {err ? (
+                              <Badge variant="outline" className="text-muted-foreground text-[10px]">—</Badge>
+                            ) : qr?.status === "ready" ? (
+                              <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]" title={qr.huella}>
+                                <QrCode className="h-3 w-3 mr-1" />QR listo
+                              </Badge>
+                            ) : qr?.status === "error" ? (
+                              <Badge variant="destructive" className="text-[10px]" title={qr.error}>
+                                <ShieldAlert className="h-3 w-3 mr-1" />Error
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-[10px]">
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />…
+                              </Badge>
+                            )}
+                          </TableCell>
                         </TableRow>
                       );
                     })}
