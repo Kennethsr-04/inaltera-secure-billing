@@ -199,7 +199,6 @@ export type Database = {
           total_iva: number
           total_recargo: number
           user_id: string
-          verifactu_url: string | null
         }
         Insert: {
           base_imponible?: number
@@ -224,7 +223,6 @@ export type Database = {
           total_iva?: number
           total_recargo?: number
           user_id: string
-          verifactu_url?: string | null
         }
         Update: {
           base_imponible?: number
@@ -249,7 +247,6 @@ export type Database = {
           total_iva?: number
           total_recargo?: number
           user_id?: string
-          verifactu_url?: string | null
         }
         Relationships: []
       }
