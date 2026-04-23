@@ -721,6 +721,10 @@ function ImportTab() {
   };
 
   const validCount = rows.length - validationErrors.length;
+  const qrReadyCount = qrStates.filter(s => s.status === "ready").length;
+  const qrErrorCount = qrStates.filter(s => s.status === "error").length;
+  const qrPendingCount = qrStates.filter(s => s.status === "pending").length;
+  const importableCount = rows.filter((r, i) => !validateRow(r, i) && qrStates[i]?.status === "ready").length;
 
   return (
     <div className="space-y-6">
