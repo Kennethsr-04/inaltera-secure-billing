@@ -159,7 +159,33 @@ export default function VerificarFactura() {
     );
   }
 
-  if (!factura) return null;
+  if (!factura) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
+            <div className="rounded-full bg-primary/10 p-4">
+              <Search className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Verificar factura</h2>
+              <p className="text-sm text-muted-foreground mt-1 max-w-xs">
+                Escanea el código QR de la factura o introduce su número para verificarla.
+              </p>
+            </div>
+            <form onSubmit={handleManualSearch} className="flex gap-2 w-full mt-2">
+              <Input
+                placeholder="Nº de factura (ej. F-2025-0001)"
+                value={manualNumero}
+                onChange={(e) => setManualNumero(e.target.value)}
+              />
+              <Button type="submit">Verificar</Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const estado = estadoConfig[factura.estado] || { label: factura.estado, className: "" };
 
