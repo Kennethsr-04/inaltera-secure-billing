@@ -217,7 +217,7 @@ Deno.serve(async (req) => {
     const { error: dbError } = await supabase.from("facturas").insert({
       user_id: user.id,
       numero_factura: numeroFactura,
-      tipo: "tercero",
+      tipo: "completa",
       origen: "cargada",
       cliente_nombre: clienteNombre || pdfFile.name.replace(".pdf", ""),
       cliente_nif: clienteNif || "N/A",
@@ -237,6 +237,10 @@ Deno.serve(async (req) => {
 
     if (dbError) {
       console.error("DB error:", dbError);
+      return new Response(
+        JSON.stringify({ error: `Error al guardar en registro: ${dbError.message}` }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Auto-create or update client in clientes table for future reuse
