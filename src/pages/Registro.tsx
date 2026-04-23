@@ -307,7 +307,7 @@ export default function RegistroFacturas() {
                       <TableCell className="text-sm">{f.cliente_nombre}</TableCell>
                       <TableCell className="text-right font-medium">{Number(f.total).toFixed(2)}</TableCell>
                       <TableCell>
-                        {f.verifactu_url ? (
+                        {(f.verifactu_url || f.qr_url) ? (
                           <Button
                             variant="ghost"
                             size="sm"
