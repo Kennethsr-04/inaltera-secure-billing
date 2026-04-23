@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { QRCodeSVG } from "qrcode.react";
 import {
   CheckCircle,
   XCircle,
@@ -10,11 +13,12 @@ import {
   Loader2,
   ShieldCheck,
   Calendar,
-  Hash,
-  Euro,
   Building2,
   User,
   Receipt,
+  QrCode,
+  Download,
+  Search,
 } from "lucide-react";
 
 interface FacturaPublica {
@@ -43,20 +47,27 @@ const estadoConfig: Record<string, { label: string; className: string }> = {
 };
 
 export default function VerificarFactura() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [factura, setFactura] = useState<FacturaPublica | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [manualNumero, setManualNumero] = useState("");
+  const qrContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const huella = searchParams.get("huella");
     const numero = searchParams.get("numero");
 
     if (!huella && !numero) {
-      setError("No se proporcionó identificador de factura.");
+      setError(null);
+      setFactura(null);
       setLoading(false);
       return;
     }
+
+    setLoading(true);
+    setError(null);
+    setFactura(null);
 
     const params = new URLSearchParams();
     if (huella) params.set("huella", huella);
@@ -74,6 +85,40 @@ export default function VerificarFactura() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [searchParams]);
+
+  const handleManualSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const value = manualNumero.trim();
+    if (!value) return;
+    setSearchParams({ numero: value });
+  };
+
+  const handleDownloadQr = () => {
+    if (!factura?.qr_url || !qrContainerRef.current) return;
+    const svg = qrContainerRef.current.querySelector("svg");
+    if (!svg) return;
+    const svgString = new XMLSerializer().serializeToString(svg);
+    const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const size = 512;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, size, size);
+      ctx.drawImage(img, 0, 0, size, size);
+      const link = document.createElement("a");
+      link.download = `qr-factura-${factura.numero_factura}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  };
 
   const fmt = (n: number) =>
     new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(n);
@@ -114,7 +159,33 @@ export default function VerificarFactura() {
     );
   }
 
-  if (!factura) return null;
+  if (!factura) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center gap-4 py-10 text-center">
+            <div className="rounded-full bg-primary/10 p-4">
+              <Search className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Verificar factura</h2>
+              <p className="text-sm text-muted-foreground mt-1 max-w-xs">
+                Escanea el código QR de la factura o introduce su número para verificarla.
+              </p>
+            </div>
+            <form onSubmit={handleManualSearch} className="flex gap-2 w-full mt-2">
+              <Input
+                placeholder="Nº de factura (ej. F-2025-0001)"
+                value={manualNumero}
+                onChange={(e) => setManualNumero(e.target.value)}
+              />
+              <Button type="submit">Verificar</Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const estado = estadoConfig[factura.estado] || { label: factura.estado, className: "" };
 
@@ -137,6 +208,41 @@ export default function VerificarFactura() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Código QR de la factura */}
+        {factura.qr_url && (
+          <Card>
+            <CardContent className="pt-6 pb-5 flex flex-col items-center gap-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <QrCode className="h-4 w-4 text-primary" />
+                Código QR de verificación
+              </div>
+              <div
+                ref={qrContainerRef}
+                className="bg-white p-3 rounded-lg border"
+              >
+                <QRCodeSVG
+                  value={factura.qr_url}
+                  size={180}
+                  level="H"
+                  includeMargin={false}
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground text-center break-all max-w-[280px] font-mono">
+                {factura.qr_url}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadQr}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Descargar QR
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Datos principales */}
         <Card>
