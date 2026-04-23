@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { FilePlus, Upload, Plus, Trash2, FileUp, Download, FileText, Brain, CheckCircle, Edit2, ChevronsUpDown, Check, UserPlus, Loader2, Eye, EyeOff, ClipboardList } from "lucide-react";
+import { FilePlus, Upload, Plus, Trash2, FileUp, Download, FileText, Brain, CheckCircle, Edit2, ChevronsUpDown, Check, UserPlus, Loader2, Eye, EyeOff, ClipboardList, FileSpreadsheet, FileJson } from "lucide-react";
 const RegistroFacturas = lazy(() => import("@/pages/Registro"));
 import { ImportTab } from "@/pages/Datos";
 import { cn } from "@/lib/utils";
