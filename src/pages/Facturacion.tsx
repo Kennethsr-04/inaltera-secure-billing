@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { FilePlus, Upload, Plus, Trash2, FileUp, Download, FileText, Brain, CheckCircle, Edit2, ChevronsUpDown, Check, UserPlus, Loader2, Eye, EyeOff, ClipboardList } from "lucide-react";
 const RegistroFacturas = lazy(() => import("@/pages/Registro"));
+import { ImportTab } from "@/pages/Datos";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
@@ -615,7 +616,7 @@ export default function Facturacion() {
           </TabsTrigger>
           <TabsTrigger value="cargar" className="gap-2">
             <Upload className="h-4 w-4" />
-            Cargar PDF
+            Cargar
           </TabsTrigger>
           <TabsTrigger value="registro" className="gap-2">
             <ClipboardList className="h-4 w-4" />
