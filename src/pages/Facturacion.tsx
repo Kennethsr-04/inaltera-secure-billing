@@ -985,6 +985,27 @@ export default function Facturacion() {
                         <Label>Dirección del emisor</Label>
                         <Input value={extractedData.emisor_direccion} onChange={(e) => setExtractedData({ ...extractedData, emisor_direccion: e.target.value })} />
                       </div>
+                    </div>
+                    <div className="border-t pt-4">
+                      <h4 className="font-medium mb-3">Datos del Cliente (Receptor)</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Cliente (Nombre)</Label>
+                          <Input value={extractedData.cliente_nombre} onChange={(e) => setExtractedData({ ...extractedData, cliente_nombre: e.target.value })} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Cliente (NIF/CIF)</Label>
+                          <Input value={extractedData.cliente_nif} onChange={(e) => setExtractedData({ ...extractedData, cliente_nif: e.target.value })} />
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                          <Label>Dirección del cliente</Label>
+                          <Input value={extractedData.cliente_direccion} onChange={(e) => setExtractedData({ ...extractedData, cliente_direccion: e.target.value })} />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="border-t pt-4">
+                      <h4 className="font-medium mb-3">Datos de la Factura</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Nº Factura Original</Label>
                         <Input value={extractedData.numero_factura} onChange={(e) => setExtractedData({ ...extractedData, numero_factura: e.target.value })} />
