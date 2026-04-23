@@ -1143,6 +1143,10 @@ export default function Facturacion() {
           </div>
             </TabsContent>
 
+            <TabsContent value="bloque">
+              <BulkPdfUpload />
+            </TabsContent>
+
             <TabsContent value="csv">
               <ImportTab
                 accept=".csv"
