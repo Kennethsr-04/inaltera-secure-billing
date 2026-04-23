@@ -1,0 +1,2 @@
+ALTER TABLE public.facturas DROP CONSTRAINT IF EXISTS facturas_origen_check;
+ALTER TABLE public.facturas ADD CONSTRAINT facturas_origen_check CHECK (origen = ANY (ARRAY['elaborada'::text, 'cargada'::text, 'importada'::text]));
