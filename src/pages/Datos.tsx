@@ -324,6 +324,140 @@ function detectInvoiceNumber(row: Record<string, any>): string {
   return value;
 }
 
+// ─── Smart amount detection ──────────────────────────────────
+// Detects monetary fields by matching a wide range of header variants
+// and using fuzzy + heuristic scoring. Returns 0 when nothing matches.
+
+type AmountKind = "total" | "iva" | "base" | "irpf" | "recargo";
+
+// Direct alias map per kind (checked first, highest priority)
+const AMOUNT_ALIASES: Record<AmountKind, string[]> = {
+  total: [
+    "total", "total_factura", "totalfactura", "total_general", "totalgeneral",
+    "total_a_pagar", "totalapagar", "total_pagar", "totalpagar",
+    "importe_total", "importetotal", "import_total", "imp_total",
+    "importe", "importe_factura", "importefactura",
+    "monto", "monto_total", "montototal", "monto_factura",
+    "amount", "amount_total", "totalamount", "total_amount",
+    "grand_total", "grandtotal", "total_con_iva", "totalconiva",
+    "precio_total", "preciototal", "suma_total", "sumatotal",
+    "valor_total", "valortotal", "factura_total",
+    "total_eur", "totaleur", "total_euros", "totaleuros",
+    "neto_a_pagar", "a_pagar", "apagar", "pendiente",
+  ],
+  iva: [
+    "total_iva", "totaliva", "iva", "importe_iva", "importeiva",
+    "imp_iva", "impiva", "iva_total", "ivatotal",
+    "cuota_iva", "cuotaiva", "cuota", "tax", "vat",
+    "vat_amount", "vatamount", "tax_amount", "taxamount",
+    "iva_repercutido", "ivarepercutido", "iva_eur", "ivaeur",
+    "monto_iva", "montoiva", "valor_iva", "valoriva",
+  ],
+  base: [
+    "base_imponible", "baseimponible", "base", "subtotal", "sub_total",
+    "neto", "importe_neto", "importeneto", "imp_neto",
+    "base_iva", "baseiva", "base_eur", "baseeur",
+    "taxable_amount", "taxableamount", "net_amount", "netamount",
+    "monto_base", "montobase", "valor_base", "valorbase",
+  ],
+  irpf: [
+    "total_irpf", "totalirpf", "irpf", "importe_irpf", "importeirpf",
+    "imp_irpf", "impirpf", "retencion", "retencion_irpf", "retencionirpf",
+    "withholding", "withholding_tax",
+  ],
+  recargo: [
+    "total_recargo", "totalrecargo", "recargo", "recargo_equivalencia",
+    "recargoequivalencia", "rec_equivalencia", "re",
+    "importe_recargo", "importerecargo",
+  ],
+};
+
+// Keyword scoring per kind for fuzzy matching on normalized headers
+function scoreAmount(nk: string, kind: AmountKind): number {
+  let s = 0;
+  if (kind === "total") {
+    if (nk === "total" || nk === "importe" || nk === "monto" || nk === "amount") s += 10;
+    if (nk.includes("total")) s += 5;
+    if (nk.includes("importe")) s += 4;
+    if (nk.includes("monto")) s += 3;
+    if (nk.includes("amount") || nk.includes("grand")) s += 3;
+    if (nk.includes("pagar")) s += 3;
+    if (nk.includes("coniva") || nk.includes("withvat")) s += 4;
+    // Penalise obvious non-totals
+    if (nk.includes("iva") || nk.includes("vat") || nk.includes("tax")) s -= 6;
+    if (nk.includes("base") || nk.includes("neto") || nk.includes("net")) s -= 6;
+    if (nk.includes("irpf") || nk.includes("retencion") || nk.includes("withhold")) s -= 6;
+    if (nk.includes("recargo")) s -= 6;
+    if (nk.includes("unidad") || nk.includes("unit") || nk.includes("cantidad") || nk.includes("qty")) s -= 6;
+  } else if (kind === "iva") {
+    if (nk === "iva" || nk === "vat" || nk === "tax") s += 10;
+    if (nk.includes("iva")) s += 6;
+    if (nk.includes("vat") || nk.includes("tax")) s += 5;
+    if (nk.includes("cuota")) s += 4;
+    if (nk.includes("repercutido")) s += 3;
+    // Penalise non-IVA
+    if (nk.includes("base") || nk.includes("neto")) s -= 6;
+    if (nk.includes("irpf") || nk.includes("retencion")) s -= 6;
+    if (nk.includes("recargo")) s -= 6;
+    if (nk.includes("regimen") || nk.includes("tipo")) s -= 8; // "tipo_iva", "regimen_iva"
+    if (/^(total|importe|monto|amount)$/.test(nk)) s -= 4;
+  } else if (kind === "base") {
+    if (nk === "base" || nk === "neto" || nk === "subtotal") s += 10;
+    if (nk.includes("base")) s += 5;
+    if (nk.includes("neto") || nk.includes("net")) s += 4;
+    if (nk.includes("subtotal") || nk.includes("imponible")) s += 5;
+    if (nk.includes("iva") && !nk.includes("base")) s -= 6;
+    if (nk.includes("irpf") || nk.includes("recargo")) s -= 6;
+  } else if (kind === "irpf") {
+    if (nk === "irpf") s += 10;
+    if (nk.includes("irpf")) s += 6;
+    if (nk.includes("retencion") || nk.includes("withhold")) s += 5;
+    if (nk.includes("iva") || nk.includes("base") || nk.includes("recargo")) s -= 6;
+  } else if (kind === "recargo") {
+    if (nk === "recargo" || nk === "re") s += 10;
+    if (nk.includes("recargo")) s += 6;
+    if (nk.includes("equivalencia")) s += 3;
+    if (nk.includes("iva") || nk.includes("base") || nk.includes("irpf")) s -= 6;
+  }
+  return s;
+}
+
+function detectAmount(row: Record<string, any>, kind: AmountKind): number {
+  // 1) Direct alias hit
+  for (const alias of AMOUNT_ALIASES[kind]) {
+    for (const [key, value] of Object.entries(row)) {
+      if (value === undefined || value === null || value === "") continue;
+      if (normKey(key) === alias) {
+        const n = parseNum(value);
+        if (n || value === 0 || value === "0") return n;
+      }
+    }
+  }
+  // 2) Fuzzy scoring
+  const scored: { value: any; score: number }[] = [];
+  for (const [key, value] of Object.entries(row)) {
+    if (value === undefined || value === null || value === "") continue;
+    const nk = normKey(key);
+    const s = scoreAmount(nk, kind);
+    if (s > 0) scored.push({ value, score: s });
+  }
+  if (scored.length === 0) return 0;
+  scored.sort((a, b) => b.score - a.score);
+  return parseNum(scored[0].value);
+}
+
+// Compute total when missing: base + iva + recargo - irpf
+function computeTotalFallback(base: number, iva: number, recargo: number, irpf: number): number {
+  const t = base + iva + recargo - irpf;
+  return Number.isFinite(t) ? Math.round(t * 100) / 100 : 0;
+}
+// Compute IVA when missing but total & base present
+function computeIvaFallback(total: number, base: number, recargo: number, irpf: number): number {
+  if (!total || !base) return 0;
+  const i = total - base - recargo + irpf;
+  return i > 0 ? Math.round(i * 100) / 100 : 0;
+}
+
 function normalizeJsonItem(item: any): NormalizedRow {
   const cliente = item.cliente ?? {};
   const importes = item.importes ?? {};
