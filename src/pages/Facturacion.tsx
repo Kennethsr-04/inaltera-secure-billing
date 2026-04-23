@@ -1014,6 +1014,7 @@ export default function Facturacion() {
                         <Label>Fecha de Emisión</Label>
                         <Input value={extractedData.fecha_emision} onChange={(e) => setExtractedData({ ...extractedData, fecha_emision: e.target.value })} />
                       </div>
+                      </div>
                     </div>
                     <div className="border-t pt-4">
                       <h4 className="font-medium mb-3">Importes</h4>
