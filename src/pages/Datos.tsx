@@ -551,10 +551,15 @@ function validateRow(r: NormalizedRow, idx: number): string | null {
   return null;
 }
 
+type QrStatus = "pending" | "ready" | "error";
+type RowQr = { status: QrStatus; huella?: string; qrUrl?: string; error?: string };
+
 function ImportTab() {
   const [file, setFile] = useState<File | null>(null);
   const [rows, setRows] = useState<NormalizedRow[]>([]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [qrStates, setQrStates] = useState<RowQr[]>([]);
+  const [qrErrors, setQrErrors] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<{ success: number; errors: number; messages: string[] } | null>(null);
@@ -563,6 +568,8 @@ function ImportTab() {
   const reset = () => {
     setRows([]);
     setValidationErrors([]);
+    setQrStates([]);
+    setQrErrors([]);
     setResult(null);
     setProgress(0);
   };
