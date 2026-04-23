@@ -307,7 +307,7 @@ export default function RegistroFacturas() {
                       <TableCell className="text-sm">{f.cliente_nombre}</TableCell>
                       <TableCell className="text-right font-medium">{Number(f.total).toFixed(2)}</TableCell>
                       <TableCell>
-                        {(f.verifactu_url || f.qr_url) ? (
+                        {f.qr_url ? (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -362,7 +362,7 @@ export default function RegistroFacturas() {
         </CardContent>
       </Card>
 
-      {/* QR VeriFactu Detail Dialog */}
+      {/* QR Tributario Detail Dialog */}
       <Dialog open={!!selectedQr} onOpenChange={(open) => !open && setSelectedQr(null)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -374,7 +374,7 @@ export default function RegistroFacturas() {
           <div className="flex flex-col items-center gap-4 py-4">
             <div className="bg-white p-4 rounded-lg border" id="registro-qr-container">
               <QRCodeSVG
-                value={selectedQr?.verifactu_url ?? selectedQr?.qr_url ?? ""}
+                value={selectedQr?.qr_url ?? ""}
                 size={200}
                 level="H"
                 includeMargin

@@ -246,7 +246,6 @@ Deno.serve(async (req) => {
       total: totales.total,
       huella_hash: huella,
       qr_url: qrUrl,
-      verifactu_url: qrUrl,
       pdf_path: pdfPath,
     });
 

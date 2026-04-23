@@ -1,0 +1,1 @@
+ALTER TABLE public.facturas DROP COLUMN IF EXISTS verifactu_url;

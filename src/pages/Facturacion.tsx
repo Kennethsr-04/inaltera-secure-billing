@@ -1127,7 +1127,7 @@ export default function Facturacion() {
         </TabsContent>
       </Tabs>
 
-      {/* QR VeriFactu Result Dialog */}
+      {/* QR Tributario Result Dialog */}
       <Dialog open={!!qrResult} onOpenChange={(open) => !open && setQrResult(null)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
