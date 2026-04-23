@@ -633,22 +633,33 @@ function ImportTab() {
     const baseTs = Date.now();
 
     for (let i = 0; i < validRows.length; i += CHUNK) {
-      const chunk = validRows.slice(i, i + CHUNK).map((r, k) => ({
-        user_id: user.id,
-        numero_factura: r.numero_factura || `IMP-${baseTs}-${i + k}`,
-        tipo: r.tipo,
-        origen: "importada",
-        cliente_nombre: r.cliente_nombre,
-        cliente_nif: r.cliente_nif,
-        cliente_direccion: r.cliente_direccion,
-        base_imponible: r.base_imponible,
-        total_iva: r.total_iva,
-        total_irpf: r.total_irpf,
-        total_recargo: r.total_recargo,
-        total: r.total,
-        regimen_iva: r.regimen_iva,
-        estado: "importada",
-      }));
+      const slice = validRows.slice(i, i + CHUNK);
+      const chunk = await Promise.all(
+        slice.map(async (r, k) => {
+          const numero = r.numero_factura || `IMP-${baseTs}-${i + k}`;
+          const rowForHash: NormalizedRow = { ...r, numero_factura: numero };
+          const huella = await generarHuellaImportada(rowForHash, user.id);
+          const qrUrl = buildQrUrl(huella);
+          return {
+            user_id: user.id,
+            numero_factura: numero,
+            tipo: r.tipo,
+            origen: "importada",
+            cliente_nombre: r.cliente_nombre,
+            cliente_nif: r.cliente_nif,
+            cliente_direccion: r.cliente_direccion,
+            base_imponible: r.base_imponible,
+            total_iva: r.total_iva,
+            total_irpf: r.total_irpf,
+            total_recargo: r.total_recargo,
+            total: r.total,
+            regimen_iva: r.regimen_iva,
+            estado: "importada",
+            huella_hash: huella,
+            qr_url: qrUrl,
+          };
+        })
+      );
 
       const { error, data } = await supabase.from("facturas").insert(chunk).select("id");
       if (error) {
