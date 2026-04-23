@@ -464,17 +464,27 @@ function normalizeJsonItem(item: any): NormalizedRow {
   const tipo = String(pick(item, "tipo") || "completa").toLowerCase();
   const tipoOk = VALID_TIPOS.includes(tipo) ? tipo : "completa";
 
+  // Merge importes + item so detectAmount sees all candidate keys
+  const merged: Record<string, any> = { ...item, ...importes };
+  const base = detectAmount(merged, "base");
+  const recargo = detectAmount(merged, "recargo");
+  const irpf = detectAmount(merged, "irpf");
+  let iva = detectAmount(merged, "iva");
+  let total = detectAmount(merged, "total");
+  if (!total && (base || iva)) total = computeTotalFallback(base, iva, recargo, irpf);
+  if (!iva && total && base) iva = computeIvaFallback(total, base, recargo, irpf);
+
   return {
     numero_factura: detectInvoiceNumber({ ...item, ...cliente }),
     tipo: tipoOk,
     cliente_nombre: String(pick(cliente, "nombre") || pick(item, "cliente_nombre") || ""),
     cliente_nif: String(pick(cliente, "nif", "cif", "dni") || pick(item, "cliente_nif") || ""),
     cliente_direccion: (pick(cliente, "direccion") || pick(item, "cliente_direccion") || null) as any,
-    base_imponible: parseNum(pick(importes, "base_imponible") || pick(item, "base_imponible")),
-    total_iva: parseNum(pick(importes, "total_iva", "iva") || pick(item, "total_iva")),
-    total_irpf: parseNum(pick(importes, "total_irpf", "irpf") || pick(item, "total_irpf")),
-    total_recargo: parseNum(pick(importes, "total_recargo", "recargo") || pick(item, "total_recargo")),
-    total: parseNum(pick(importes, "total") || pick(item, "total")),
+    base_imponible: base,
+    total_iva: iva,
+    total_irpf: irpf,
+    total_recargo: recargo,
+    total: total,
     regimen_iva: String(pick(item, "regimen_iva") || "general"),
   };
 }
@@ -483,17 +493,25 @@ function normalizeCsvRow(row: Record<string, string>): NormalizedRow {
   const tipoRaw = (pick(row, "tipo") || "completa").toString().toLowerCase();
   const tipoOk = VALID_TIPOS.includes(tipoRaw) ? tipoRaw : "completa";
 
+  const base = detectAmount(row, "base");
+  const recargo = detectAmount(row, "recargo");
+  const irpf = detectAmount(row, "irpf");
+  let iva = detectAmount(row, "iva");
+  let total = detectAmount(row, "total");
+  if (!total && (base || iva)) total = computeTotalFallback(base, iva, recargo, irpf);
+  if (!iva && total && base) iva = computeIvaFallback(total, base, recargo, irpf);
+
   return {
     numero_factura: detectInvoiceNumber(row),
     tipo: tipoOk,
     cliente_nombre: String(pick(row, "cliente_nombre", "cliente", "nombre") || ""),
     cliente_nif: String(pick(row, "cliente_nif", "nif", "cif") || ""),
     cliente_direccion: (pick(row, "cliente_direccion", "direccion") || null) as any,
-    base_imponible: parseNum(pick(row, "base_imponible", "base")),
-    total_iva: parseNum(pick(row, "total_iva", "iva")),
-    total_irpf: parseNum(pick(row, "total_irpf", "irpf")),
-    total_recargo: parseNum(pick(row, "total_recargo", "recargo")),
-    total: parseNum(pick(row, "total", "importe")),
+    base_imponible: base,
+    total_iva: iva,
+    total_irpf: irpf,
+    total_recargo: recargo,
+    total: total,
     regimen_iva: String(pick(row, "regimen_iva") || "general"),
   };
 }
