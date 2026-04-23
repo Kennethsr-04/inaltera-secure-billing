@@ -231,84 +231,199 @@ function ExportTab() {
 }
 
 // ─── Import component ───────────────────────────────────────
+type NormalizedRow = {
+  numero_factura: string;
+  tipo: string;
+  cliente_nombre: string;
+  cliente_nif: string;
+  cliente_direccion: string | null;
+  base_imponible: number;
+  total_iva: number;
+  total_irpf: number;
+  total_recargo: number;
+  total: number;
+  regimen_iva: string;
+};
+
+const VALID_TIPOS = ["completa", "simplificada", "rectificativa"];
+
+function pick(row: Record<string, any>, ...keys: string[]): any {
+  for (const k of keys) {
+    if (row[k] !== undefined && row[k] !== null && row[k] !== "") return row[k];
+    const lower = k.toLowerCase();
+    if (row[lower] !== undefined && row[lower] !== null && row[lower] !== "") return row[lower];
+  }
+  return "";
+}
+
+function normalizeJsonItem(item: any): NormalizedRow {
+  const cliente = item.cliente ?? {};
+  const importes = item.importes ?? {};
+  const tipo = String(pick(item, "tipo") || "completa").toLowerCase();
+  const tipoOk = VALID_TIPOS.includes(tipo) ? tipo : "completa";
+
+  return {
+    numero_factura: String(pick(item, "numero_factura", "numero", "num_factura") || ""),
+    tipo: tipoOk,
+    cliente_nombre: String(pick(cliente, "nombre") || pick(item, "cliente_nombre") || ""),
+    cliente_nif: String(pick(cliente, "nif", "cif", "dni") || pick(item, "cliente_nif") || ""),
+    cliente_direccion: (pick(cliente, "direccion") || pick(item, "cliente_direccion") || null) as any,
+    base_imponible: parseNum(pick(importes, "base_imponible") || pick(item, "base_imponible")),
+    total_iva: parseNum(pick(importes, "total_iva", "iva") || pick(item, "total_iva")),
+    total_irpf: parseNum(pick(importes, "total_irpf", "irpf") || pick(item, "total_irpf")),
+    total_recargo: parseNum(pick(importes, "total_recargo", "recargo") || pick(item, "total_recargo")),
+    total: parseNum(pick(importes, "total") || pick(item, "total")),
+    regimen_iva: String(pick(item, "regimen_iva") || "general"),
+  };
+}
+
+function normalizeCsvRow(row: Record<string, string>): NormalizedRow {
+  const tipoRaw = (pick(row, "tipo") || "completa").toString().toLowerCase();
+  const tipoOk = VALID_TIPOS.includes(tipoRaw) ? tipoRaw : "completa";
+
+  return {
+    numero_factura: String(pick(row, "numero_factura", "numero", "num_factura") || ""),
+    tipo: tipoOk,
+    cliente_nombre: String(pick(row, "cliente_nombre", "cliente", "nombre") || ""),
+    cliente_nif: String(pick(row, "cliente_nif", "nif", "cif") || ""),
+    cliente_direccion: (pick(row, "cliente_direccion", "direccion") || null) as any,
+    base_imponible: parseNum(pick(row, "base_imponible", "base")),
+    total_iva: parseNum(pick(row, "total_iva", "iva")),
+    total_irpf: parseNum(pick(row, "total_irpf", "irpf")),
+    total_recargo: parseNum(pick(row, "total_recargo", "recargo")),
+    total: parseNum(pick(row, "total", "importe")),
+    regimen_iva: String(pick(row, "regimen_iva") || "general"),
+  };
+}
+
+function validateRow(r: NormalizedRow, idx: number): string | null {
+  if (!r.numero_factura.trim()) return `Fila ${idx + 1}: falta nº de factura`;
+  if (!r.cliente_nombre.trim()) return `Fila ${idx + 1}: falta nombre de cliente`;
+  if (!r.cliente_nif.trim()) return `Fila ${idx + 1}: falta NIF de cliente`;
+  if (r.total < 0) return `Fila ${idx + 1}: total negativo`;
+  return null;
+}
+
 function ImportTab() {
   const [file, setFile] = useState<File | null>(null);
-  const [parsedRows, setParsedRows] = useState<Record<string, string>[]>([]);
+  const [rows, setRows] = useState<NormalizedRow[]>([]);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
-  const [result, setResult] = useState<{ success: number; errors: number } | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [result, setResult] = useState<{ success: number; errors: number; messages: string[] } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const reset = () => {
+    setRows([]);
+    setValidationErrors([]);
+    setResult(null);
+    setProgress(0);
+  };
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
     setFile(f);
-    setResult(null);
+    reset();
 
     const reader = new FileReader();
+    reader.onerror = () => toast.error("No se pudo leer el archivo");
     reader.onload = (ev) => {
-      const text = ev.target?.result as string;
-      if (f.name.endsWith(".json")) {
-        try {
+      const text = (ev.target?.result as string) ?? "";
+      let normalized: NormalizedRow[] = [];
+
+      try {
+        if (f.name.toLowerCase().endsWith(".json")) {
           const data = JSON.parse(text);
           const arr = Array.isArray(data) ? data : [data];
-          setParsedRows(arr.map((item: any) => ({
-            numero_factura: item.numero_factura ?? "",
-            tipo: item.tipo ?? "completa",
-            cliente_nombre: item.cliente?.nombre ?? item.cliente_nombre ?? "",
-            cliente_nif: item.cliente?.nif ?? item.cliente_nif ?? "",
-            cliente_direccion: item.cliente?.direccion ?? item.cliente_direccion ?? "",
-            base_imponible: String(item.importes?.base_imponible ?? item.base_imponible ?? 0),
-            total_iva: String(item.importes?.total_iva ?? item.total_iva ?? 0),
-            total_irpf: String(item.importes?.total_irpf ?? item.total_irpf ?? 0),
-            total_recargo: String(item.importes?.total_recargo ?? item.total_recargo ?? 0),
-            total: String(item.importes?.total ?? item.total ?? 0),
-            regimen_iva: item.regimen_iva ?? "general",
-          })));
-        } catch {
-          toast.error("JSON inválido");
-          setParsedRows([]);
+          normalized = arr.map(normalizeJsonItem);
+        } else {
+          const parsed = parseCSV(text);
+          if (parsed.length === 0) {
+            toast.error("El CSV está vacío o no tiene cabecera válida");
+            return;
+          }
+          normalized = parsed.map(normalizeCsvRow);
         }
+      } catch (err: any) {
+        toast.error(`Archivo inválido: ${err.message ?? "formato no reconocido"}`);
+        return;
+      }
+
+      const errs: string[] = [];
+      normalized.forEach((r, i) => {
+        const e = validateRow(r, i);
+        if (e) errs.push(e);
+      });
+
+      setRows(normalized);
+      setValidationErrors(errs);
+      if (errs.length > 0) {
+        toast.warning(`${normalized.length} registros leídos · ${errs.length} con errores`);
       } else {
-        setParsedRows(parseCSV(text));
+        toast.success(`${normalized.length} registros listos para importar`);
       }
     };
-    reader.readAsText(f);
+    reader.readAsText(f, "utf-8");
   };
 
   const handleImport = async () => {
-    if (parsedRows.length === 0) return;
+    const validRows = rows.filter((r, i) => !validateRow(r, i));
+    if (validRows.length === 0) {
+      toast.error("No hay filas válidas para importar");
+      return;
+    }
     setImporting(true);
+    setProgress(0);
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { toast.error("No autenticado"); setImporting(false); return; }
 
+    const CHUNK = 100;
     let success = 0;
     let errors = 0;
+    const messages: string[] = [];
+    const baseTs = Date.now();
 
-    for (const row of parsedRows) {
-      const { error } = await supabase.from("facturas").insert({
+    for (let i = 0; i < validRows.length; i += CHUNK) {
+      const chunk = validRows.slice(i, i + CHUNK).map((r, k) => ({
         user_id: user.id,
-        numero_factura: row.numero_factura || `IMP-${Date.now()}`,
-        tipo: row.tipo || "completa",
+        numero_factura: r.numero_factura || `IMP-${baseTs}-${i + k}`,
+        tipo: r.tipo,
         origen: "importada",
-        cliente_nombre: row.cliente_nombre || "Sin nombre",
-        cliente_nif: row.cliente_nif || "00000000X",
-        cliente_direccion: row.cliente_direccion || null,
-        base_imponible: parseFloat(row.base_imponible) || 0,
-        total_iva: parseFloat(row.total_iva) || 0,
-        total_irpf: parseFloat(row.total_irpf) || 0,
-        total_recargo: parseFloat(row.total_recargo) || 0,
-        total: parseFloat(row.total) || 0,
-        regimen_iva: row.regimen_iva || "general",
+        cliente_nombre: r.cliente_nombre,
+        cliente_nif: r.cliente_nif,
+        cliente_direccion: r.cliente_direccion,
+        base_imponible: r.base_imponible,
+        total_iva: r.total_iva,
+        total_irpf: r.total_irpf,
+        total_recargo: r.total_recargo,
+        total: r.total,
+        regimen_iva: r.regimen_iva,
         estado: "importada",
-      });
-      if (error) { errors++; console.error(error); } else { success++; }
+      }));
+
+      const { error, data } = await supabase.from("facturas").insert(chunk).select("id");
+      if (error) {
+        // Fallback: try one by one to salvage good rows
+        for (const single of chunk) {
+          const { error: e2 } = await supabase.from("facturas").insert(single);
+          if (e2) { errors++; messages.push(`${single.numero_factura}: ${e2.message}`); }
+          else success++;
+        }
+      } else {
+        success += data?.length ?? chunk.length;
+      }
+      setProgress(Math.round(((i + chunk.length) / validRows.length) * 100));
     }
 
-    setResult({ success, errors });
+    setResult({ success, errors, messages: messages.slice(0, 5) });
     setImporting(false);
-    if (success > 0) toast.success(`${success} facturas importadas correctamente`);
-    if (errors > 0) toast.error(`${errors} facturas con error`);
+    if (success > 0) toast.success(`${success} facturas importadas`);
+    if (errors > 0) toast.error(`${errors} con error`);
   };
+
+  const validCount = rows.length - validationErrors.length;
 
   return (
     <div className="space-y-6">
@@ -318,7 +433,9 @@ function ImportTab() {
             <Upload className="h-5 w-5 text-primary" />
             Importar Facturas
           </CardTitle>
-          <CardDescription>Sube un archivo CSV o JSON con datos de facturas</CardDescription>
+          <CardDescription>
+            Sube un archivo CSV o JSON. Acepta separador "," o ";", decimales con punto o coma, y BOM UTF-8.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div
@@ -331,29 +448,55 @@ function ImportTab() {
             <input
               ref={fileRef}
               type="file"
-              accept=".csv,.json"
+              accept=".csv,.json,application/json,text/csv"
               className="hidden"
               onChange={handleFile}
             />
           </div>
 
-          {parsedRows.length > 0 && (
+          {rows.length > 0 && (
             <>
-              <div className="flex items-center justify-between">
-                <Badge variant="secondary">{parsedRows.length} registros detectados</Badge>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary">{rows.length} registros leídos</Badge>
+                <Badge className="bg-success/10 text-success border-success/20">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />{validCount} válidos
+                </Badge>
+                {validationErrors.length > 0 && (
+                  <Badge variant="destructive">
+                    <AlertCircle className="h-3 w-3 mr-1" />{validationErrors.length} con error
+                  </Badge>
+                )}
                 {result && (
-                  <div className="flex gap-2">
+                  <>
                     <Badge className="bg-success/10 text-success border-success/20">
-                      <CheckCircle2 className="h-3 w-3 mr-1" />{result.success} OK
+                      <CheckCircle2 className="h-3 w-3 mr-1" />{result.success} importadas
                     </Badge>
                     {result.errors > 0 && (
                       <Badge variant="destructive">
-                        <AlertCircle className="h-3 w-3 mr-1" />{result.errors} errores
+                        <AlertCircle className="h-3 w-3 mr-1" />{result.errors} fallidas
                       </Badge>
                     )}
-                  </div>
+                  </>
                 )}
               </div>
+
+              {validationErrors.length > 0 && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs space-y-1 max-h-32 overflow-y-auto">
+                  {validationErrors.slice(0, 10).map((e, i) => (
+                    <p key={i} className="text-destructive">• {e}</p>
+                  ))}
+                  {validationErrors.length > 10 && (
+                    <p className="text-muted-foreground">…y {validationErrors.length - 10} más</p>
+                  )}
+                </div>
+              )}
+
+              {result && result.messages.length > 0 && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs space-y-1 max-h-32 overflow-y-auto">
+                  <p className="font-medium text-destructive mb-1">Errores de inserción:</p>
+                  {result.messages.map((m, i) => <p key={i} className="text-destructive">• {m}</p>)}
+                </div>
+              )}
 
               <div className="overflow-x-auto max-h-[300px] overflow-y-auto border rounded-lg">
                 <Table>
@@ -362,31 +505,49 @@ function ImportTab() {
                       <TableHead>Nº Factura</TableHead>
                       <TableHead>Cliente</TableHead>
                       <TableHead>NIF</TableHead>
+                      <TableHead className="text-right">Base</TableHead>
                       <TableHead className="text-right">Total</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {parsedRows.slice(0, 20).map((row, i) => (
-                      <TableRow key={i}>
-                        <TableCell className="font-mono text-sm">{row.numero_factura}</TableCell>
-                        <TableCell className="text-sm">{row.cliente_nombre}</TableCell>
-                        <TableCell className="text-sm">{row.cliente_nif}</TableCell>
-                        <TableCell className="text-right">{parseFloat(row.total || "0").toFixed(2)}€</TableCell>
-                      </TableRow>
-                    ))}
+                    {rows.slice(0, 20).map((row, i) => {
+                      const err = validateRow(row, i);
+                      return (
+                        <TableRow key={i} className={err ? "bg-destructive/5" : ""}>
+                          <TableCell className="font-mono text-sm">{row.numero_factura || "—"}</TableCell>
+                          <TableCell className="text-sm">{row.cliente_nombre || "—"}</TableCell>
+                          <TableCell className="text-sm">{row.cliente_nif || "—"}</TableCell>
+                          <TableCell className="text-right text-sm">{row.base_imponible.toFixed(2)}€</TableCell>
+                          <TableCell className="text-right text-sm">{row.total.toFixed(2)}€</TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
-                {parsedRows.length > 20 && (
+                {rows.length > 20 && (
                   <p className="text-xs text-muted-foreground text-center py-2">
-                    Mostrando 20 de {parsedRows.length} registros
+                    Mostrando 20 de {rows.length} registros
                   </p>
                 )}
               </div>
 
-              <Button onClick={handleImport} disabled={importing || !!result}>
-                {importing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-                Importar {parsedRows.length} facturas
-              </Button>
+              {importing && (
+                <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                  <div className="bg-primary h-full transition-all" style={{ width: `${progress}%` }} />
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <Button onClick={handleImport} disabled={importing || !!result || validCount === 0}>
+                  {importing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+                  Importar {validCount} facturas
+                </Button>
+                {(result || rows.length > 0) && (
+                  <Button variant="outline" onClick={() => { setFile(null); reset(); if (fileRef.current) fileRef.current.value = ""; }}>
+                    Limpiar
+                  </Button>
+                )}
+              </div>
             </>
           )}
         </CardContent>
