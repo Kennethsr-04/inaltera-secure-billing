@@ -237,6 +237,10 @@ Deno.serve(async (req) => {
 
     if (dbError) {
       console.error("DB error:", dbError);
+      return new Response(
+        JSON.stringify({ error: `Error al guardar en registro: ${dbError.message}` }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Auto-create or update client in clientes table for future reuse
