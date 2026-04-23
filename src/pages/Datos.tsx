@@ -554,7 +554,7 @@ function validateRow(r: NormalizedRow, idx: number): string | null {
 type QrStatus = "pending" | "ready" | "error";
 type RowQr = { status: QrStatus; huella?: string; qrUrl?: string; error?: string };
 
-function ImportTab() {
+export function ImportTab({ accept = ".csv,.json", title, description }: { accept?: string; title?: string; description?: string } = {}) {
   const [file, setFile] = useState<File | null>(null);
   const [rows, setRows] = useState<NormalizedRow[]>([]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
