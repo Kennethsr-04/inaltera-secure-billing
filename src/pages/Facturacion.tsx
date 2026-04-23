@@ -11,9 +11,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Progress } from "@/components/ui/progress";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { FilePlus, Upload, Plus, Trash2, FileUp, Download, FileText, Brain, CheckCircle, Edit2, ChevronsUpDown, Check, UserPlus, Loader2, Eye, EyeOff, ClipboardList, FileSpreadsheet, FileJson } from "lucide-react";
+import { FilePlus, Upload, Plus, Trash2, FileUp, Download, FileText, Brain, CheckCircle, Edit2, ChevronsUpDown, Check, UserPlus, Loader2, Eye, EyeOff, ClipboardList, FileSpreadsheet, FileJson, Layers } from "lucide-react";
 const RegistroFacturas = lazy(() => import("@/pages/Registro"));
 import { ImportTab } from "@/pages/Datos";
+import { BulkPdfUpload } from "@/components/factura/BulkPdfUpload";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
@@ -881,6 +882,10 @@ export default function Facturacion() {
                 <FileUp className="h-4 w-4" />
                 Cargar PDF
               </TabsTrigger>
+              <TabsTrigger value="bloque" className="gap-2">
+                <Layers className="h-4 w-4" />
+                Carga en Bloque
+              </TabsTrigger>
               <TabsTrigger value="csv" className="gap-2">
                 <FileSpreadsheet className="h-4 w-4" />
                 Cargar CSV
@@ -1136,6 +1141,10 @@ export default function Facturacion() {
               </div>
             )}
           </div>
+            </TabsContent>
+
+            <TabsContent value="bloque">
+              <BulkPdfUpload />
             </TabsContent>
 
             <TabsContent value="csv">
