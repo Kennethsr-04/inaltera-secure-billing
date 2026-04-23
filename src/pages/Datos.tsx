@@ -331,7 +331,7 @@ function normalizeJsonItem(item: any): NormalizedRow {
   const tipoOk = VALID_TIPOS.includes(tipo) ? tipo : "completa";
 
   return {
-    numero_factura: String(pick(item, "numero_factura", "numero", "num_factura") || ""),
+    numero_factura: detectInvoiceNumber({ ...item, ...cliente }),
     tipo: tipoOk,
     cliente_nombre: String(pick(cliente, "nombre") || pick(item, "cliente_nombre") || ""),
     cliente_nif: String(pick(cliente, "nif", "cif", "dni") || pick(item, "cliente_nif") || ""),
