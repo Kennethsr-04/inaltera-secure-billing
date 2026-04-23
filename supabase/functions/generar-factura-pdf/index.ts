@@ -186,13 +186,23 @@ Deno.serve(async (req) => {
       page.drawText(payload.observaciones.substring(0, 100), { x: margin, y, font, size: 8, color: rgb(0.4, 0.4, 0.4) });
     }
 
-    // QR Code - bottom right
-    const qrSize = 100;
-    const qrX = width - margin - qrSize;
-    const qrY = margin + 30;
+    // QR Code - bottom right (crisp integer-point cells + quiet zone)
+    const cellSize = 3; // points per module
+    const qrSize = cellSize * moduleCount;
+    const quietZone = cellSize * 4;
+    const qrX = width - margin - quietZone - qrSize;
+    const qrY = margin + 30 + quietZone;
 
-    // Draw QR modules as rectangles directly
-    const cellSize = qrSize / moduleCount;
+    // White background with quiet zone (essential for scanning)
+    page.drawRectangle({
+      x: qrX - quietZone,
+      y: qrY - quietZone,
+      width: qrSize + quietZone * 2,
+      height: qrSize + quietZone * 2,
+      color: rgb(1, 1, 1),
+    });
+
+    // Draw QR modules as crisp integer-aligned squares
     for (let row = 0; row < moduleCount; row++) {
       for (let col = 0; col < moduleCount; col++) {
         if (modules.get(row, col)) {
@@ -208,8 +218,8 @@ Deno.serve(async (req) => {
     }
 
     // QR label
-    page.drawText("QR Tributario", { x: qrX + 18, y: qrY - 12, font: fontBold, size: 8, color: rgb(0.15, 0.4, 0.7) });
-    page.drawText("Código QR de verificación", { x: qrX + 5, y: qrY - 22, font, size: 6, color: rgb(0.5, 0.5, 0.5) });
+    page.drawText("QR Tributario", { x: qrX, y: qrY + qrSize + quietZone + 2, font: fontBold, size: 8, color: rgb(0.15, 0.4, 0.7) });
+    page.drawText("Código QR de verificación", { x: qrX, y: qrY - quietZone - 10, font, size: 6, color: rgb(0.5, 0.5, 0.5) });
 
     // Huella hash at bottom left
     page.drawText(`Huella SHA-256: ${huella.substring(0, 32)}...`, { x: margin, y: margin, font, size: 6, color: rgb(0.6, 0.6, 0.6) });
