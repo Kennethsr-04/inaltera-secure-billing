@@ -875,6 +875,23 @@ export default function Facturacion() {
         </TabsContent>
 
         <TabsContent value="cargar">
+          <Tabs defaultValue="pdf" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="pdf" className="gap-2">
+                <FileUp className="h-4 w-4" />
+                Cargar PDF
+              </TabsTrigger>
+              <TabsTrigger value="csv" className="gap-2">
+                <FileSpreadsheet className="h-4 w-4" />
+                Cargar CSV
+              </TabsTrigger>
+              <TabsTrigger value="json" className="gap-2">
+                <FileJson className="h-4 w-4" />
+                Cargar JSON
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="pdf">
           <div className="flex gap-4">
             {/* Left side: steps */}
             <div className={cn("space-y-4 transition-all", showPreview && pdfPreviewUrl ? "w-1/2" : "w-full")}>
