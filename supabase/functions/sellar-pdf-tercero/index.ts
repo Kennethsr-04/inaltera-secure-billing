@@ -110,45 +110,50 @@ Deno.serve(async (req) => {
     const modules = qrData.modules;
     const moduleCount = modules.size;
 
-    // Smart QR positioning based on layout analysis
-    const qrSize = 100;
-    const margin = 40;
+    // QR sizing: use integer-point cells to keep edges crisp for scanners.
+    // Target ~3pt per module for reliable scanning even with long URLs.
+    const targetCell = 3; // points per module
+    const cellSize = targetCell;
+    const qrSize = cellSize * moduleCount;
+    const quietZone = cellSize * 4; // mandatory quiet zone (4 modules per QR spec)
+    const boxSize = qrSize + quietZone * 2;
+    const margin = 30;
+
     let qrX: number;
     let qrY: number;
 
     if (layoutOrientacion === "horizontal") {
-      qrX = margin;
-      qrY = margin;
+      qrX = margin + quietZone;
+      qrY = margin + quietZone;
     } else if (layoutFooterLibre) {
       qrX = (width - qrSize) / 2;
-      qrY = margin;
+      qrY = margin + quietZone;
     } else {
-      qrX = width - margin - qrSize;
-      qrY = margin;
+      qrX = width - margin - quietZone - qrSize;
+      qrY = margin + quietZone;
     }
 
-    // White background behind QR
+    // White background (includes quiet zone) — critical for scannability
     lastPage.drawRectangle({
-      x: qrX - 8,
-      y: qrY - 30,
-      width: qrSize + 16,
-      height: qrSize + 50,
+      x: qrX - quietZone,
+      y: qrY - quietZone - 22,
+      width: boxSize,
+      height: boxSize + 38,
       color: rgb(1, 1, 1),
-      opacity: 0.95,
+      opacity: 1,
     });
 
-    // Draw border
+    // Subtle border around the whole box (outside quiet zone is fine)
     lastPage.drawRectangle({
-      x: qrX - 8,
-      y: qrY - 30,
-      width: qrSize + 16,
-      height: qrSize + 50,
+      x: qrX - quietZone,
+      y: qrY - quietZone - 22,
+      width: boxSize,
+      height: boxSize + 38,
       borderColor: rgb(0.15, 0.4, 0.7),
-      borderWidth: 1,
+      borderWidth: 0.5,
     });
 
-    // Draw QR modules directly as rectangles
-    const cellSize = qrSize / moduleCount;
+    // Draw QR modules as crisp integer-aligned squares
     for (let row = 0; row < moduleCount; row++) {
       for (let col = 0; col < moduleCount; col++) {
         if (modules.get(row, col)) {
@@ -164,24 +169,16 @@ Deno.serve(async (req) => {
     }
 
     lastPage.drawText("QR Tributario", {
-      x: qrX + 14,
-      y: qrY + qrSize + 6,
+      x: qrX,
+      y: qrY + qrSize + 4,
       font: fontBold,
       size: 8,
       color: rgb(0.15, 0.4, 0.7),
     });
 
-    lastPage.drawText(`Huella: ${huella.substring(0, 20)}...`, {
-      x: qrX - 4,
-      y: qrY - 12,
-      font,
-      size: 5,
-      color: rgb(0.5, 0.5, 0.5),
-    });
-
-    lastPage.drawText(fechaStr, {
-      x: qrX + 25,
-      y: qrY - 22,
+    lastPage.drawText(`${huella.substring(0, 16)}... · ${fechaStr}`, {
+      x: qrX,
+      y: qrY - quietZone - 14,
       font,
       size: 6,
       color: rgb(0.5, 0.5, 0.5),
