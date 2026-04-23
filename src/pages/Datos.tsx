@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Upload, FileJson, FileSpreadsheet, FileText, Database, Loader2, CheckCircle2, AlertCircle, ArrowUpDown, Link2 } from "lucide-react";
+import { Download, Upload, FileJson, FileSpreadsheet, FileText, Database, Loader2, CheckCircle2, AlertCircle, ArrowUpDown, Link2, QrCode, ShieldAlert } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -551,10 +551,15 @@ function validateRow(r: NormalizedRow, idx: number): string | null {
   return null;
 }
 
+type QrStatus = "pending" | "ready" | "error";
+type RowQr = { status: QrStatus; huella?: string; qrUrl?: string; error?: string };
+
 function ImportTab() {
   const [file, setFile] = useState<File | null>(null);
   const [rows, setRows] = useState<NormalizedRow[]>([]);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [qrStates, setQrStates] = useState<RowQr[]>([]);
+  const [qrErrors, setQrErrors] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<{ success: number; errors: number; messages: string[] } | null>(null);
@@ -563,6 +568,8 @@ function ImportTab() {
   const reset = () => {
     setRows([]);
     setValidationErrors([]);
+    setQrStates([]);
+    setQrErrors([]);
     setResult(null);
     setProgress(0);
   };
@@ -575,7 +582,7 @@ function ImportTab() {
 
     const reader = new FileReader();
     reader.onerror = () => toast.error("No se pudo leer el archivo");
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       const text = (ev.target?.result as string) ?? "";
       let normalized: NormalizedRow[] = [];
 
@@ -605,19 +612,55 @@ function ImportTab() {
 
       setRows(normalized);
       setValidationErrors(errs);
-      if (errs.length > 0) {
-        toast.warning(`${normalized.length} registros leídos · ${errs.length} con errores`);
+
+      // Pre-compute huella SHA-256 + QR URL for each row so the table can
+      // show "QR listo" status before the actual import.
+      const { data: { user } } = await supabase.auth.getUser();
+      const baseTs = Date.now();
+      const initial: RowQr[] = normalized.map(() => ({ status: "pending" }));
+      setQrStates(initial);
+
+      const computed: RowQr[] = [];
+      const qrErrs: string[] = [];
+      for (let i = 0; i < normalized.length; i++) {
+        const r = normalized[i];
+        if (validateRow(r, i)) {
+          // Skip rows that won't be imported anyway
+          computed.push({ status: "pending" });
+          continue;
+        }
+        try {
+          const numero = r.numero_factura || `IMP-${baseTs}-${i}`;
+          const rowForHash: NormalizedRow = { ...r, numero_factura: numero };
+          const huella = await generarHuellaImportada(rowForHash, user?.id ?? "anon");
+          const qrUrl = buildQrUrl(huella);
+          computed.push({ status: "ready", huella, qrUrl });
+        } catch (err: any) {
+          const msg = `Fila ${i + 1} (${r.numero_factura || "sin nº"}): no se pudo calcular la huella — ${err?.message ?? "error desconocido"}`;
+          qrErrs.push(msg);
+          console.error("QR generation error", err);
+          computed.push({ status: "error", error: err?.message ?? "Error desconocido" });
+        }
+      }
+      setQrStates(computed);
+      setQrErrors(qrErrs);
+
+      const readyCount = computed.filter(s => s.status === "ready").length;
+      if (errs.length > 0 || qrErrs.length > 0) {
+        toast.warning(`${normalized.length} leídos · ${readyCount} con QR listo · ${errs.length + qrErrs.length} con errores`);
       } else {
-        toast.success(`${normalized.length} registros listos para importar`);
+        toast.success(`${normalized.length} registros listos para importar (QR generado)`);
       }
     };
     reader.readAsText(f, "utf-8");
   };
 
   const handleImport = async () => {
-    const validRows = rows.filter((r, i) => !validateRow(r, i));
-    if (validRows.length === 0) {
-      toast.error("No hay filas válidas para importar");
+    const validIndices = rows
+      .map((r, i) => ({ r, i }))
+      .filter(({ r, i }) => !validateRow(r, i) && qrStates[i]?.status === "ready");
+    if (validIndices.length === 0) {
+      toast.error("No hay filas válidas con QR listo para importar");
       return;
     }
     setImporting(true);
@@ -632,34 +675,30 @@ function ImportTab() {
     const messages: string[] = [];
     const baseTs = Date.now();
 
-    for (let i = 0; i < validRows.length; i += CHUNK) {
-      const slice = validRows.slice(i, i + CHUNK);
-      const chunk = await Promise.all(
-        slice.map(async (r, k) => {
-          const numero = r.numero_factura || `IMP-${baseTs}-${i + k}`;
-          const rowForHash: NormalizedRow = { ...r, numero_factura: numero };
-          const huella = await generarHuellaImportada(rowForHash, user.id);
-          const qrUrl = buildQrUrl(huella);
-          return {
-            user_id: user.id,
-            numero_factura: numero,
-            tipo: r.tipo,
-            origen: "importada",
-            cliente_nombre: r.cliente_nombre,
-            cliente_nif: r.cliente_nif,
-            cliente_direccion: r.cliente_direccion,
-            base_imponible: r.base_imponible,
-            total_iva: r.total_iva,
-            total_irpf: r.total_irpf,
-            total_recargo: r.total_recargo,
-            total: r.total,
-            regimen_iva: r.regimen_iva,
-            estado: "importada",
-            huella_hash: huella,
-            qr_url: qrUrl,
-          };
-        })
-      );
+    for (let i = 0; i < validIndices.length; i += CHUNK) {
+      const slice = validIndices.slice(i, i + CHUNK);
+      const chunk = slice.map(({ r, i: idx }, k) => {
+        const numero = r.numero_factura || `IMP-${baseTs}-${i + k}`;
+        const qr = qrStates[idx];
+        return {
+          user_id: user.id,
+          numero_factura: numero,
+          tipo: r.tipo,
+          origen: "importada",
+          cliente_nombre: r.cliente_nombre,
+          cliente_nif: r.cliente_nif,
+          cliente_direccion: r.cliente_direccion,
+          base_imponible: r.base_imponible,
+          total_iva: r.total_iva,
+          total_irpf: r.total_irpf,
+          total_recargo: r.total_recargo,
+          total: r.total,
+          regimen_iva: r.regimen_iva,
+          estado: "importada",
+          huella_hash: qr.huella!,
+          qr_url: qr.qrUrl!,
+        };
+      });
 
       const { error, data } = await supabase.from("facturas").insert(chunk).select("id");
       if (error) {
@@ -672,7 +711,7 @@ function ImportTab() {
       } else {
         success += data?.length ?? chunk.length;
       }
-      setProgress(Math.round(((i + chunk.length) / validRows.length) * 100));
+      setProgress(Math.round(((i + chunk.length) / validIndices.length) * 100));
     }
 
     setResult({ success, errors, messages: messages.slice(0, 5) });
@@ -682,6 +721,10 @@ function ImportTab() {
   };
 
   const validCount = rows.length - validationErrors.length;
+  const qrReadyCount = qrStates.filter(s => s.status === "ready").length;
+  const qrErrorCount = qrStates.filter(s => s.status === "error").length;
+  const qrPendingCount = qrStates.filter(s => s.status === "pending").length;
+  const importableCount = rows.filter((r, i) => !validateRow(r, i) && qrStates[i]?.status === "ready").length;
 
   return (
     <div className="space-y-6">
@@ -724,6 +767,21 @@ function ImportTab() {
                     <AlertCircle className="h-3 w-3 mr-1" />{validationErrors.length} con error
                   </Badge>
                 )}
+                {qrReadyCount > 0 && (
+                  <Badge className="bg-primary/10 text-primary border-primary/20">
+                    <QrCode className="h-3 w-3 mr-1" />{qrReadyCount} QR listos
+                  </Badge>
+                )}
+                {qrPendingCount > 0 && qrPendingCount !== rows.length && (
+                  <Badge variant="secondary">
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />{qrPendingCount} calculando QR
+                  </Badge>
+                )}
+                {qrErrorCount > 0 && (
+                  <Badge variant="destructive">
+                    <ShieldAlert className="h-3 w-3 mr-1" />{qrErrorCount} QR con error
+                  </Badge>
+                )}
                 {result && (
                   <>
                     <Badge className="bg-success/10 text-success border-success/20">
@@ -749,6 +807,20 @@ function ImportTab() {
                 </div>
               )}
 
+              {qrErrors.length > 0 && (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs space-y-1 max-h-32 overflow-y-auto">
+                  <p className="font-medium text-destructive mb-1 flex items-center gap-1">
+                    <ShieldAlert className="h-3 w-3" /> Errores al generar QR / huella:
+                  </p>
+                  {qrErrors.slice(0, 10).map((e, i) => (
+                    <p key={i} className="text-destructive">• {e}</p>
+                  ))}
+                  {qrErrors.length > 10 && (
+                    <p className="text-muted-foreground">…y {qrErrors.length - 10} más</p>
+                  )}
+                </div>
+              )}
+
               {result && result.messages.length > 0 && (
                 <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs space-y-1 max-h-32 overflow-y-auto">
                   <p className="font-medium text-destructive mb-1">Errores de inserción:</p>
@@ -765,11 +837,13 @@ function ImportTab() {
                       <TableHead>NIF</TableHead>
                       <TableHead className="text-right">Base</TableHead>
                       <TableHead className="text-right">Total</TableHead>
+                      <TableHead>QR</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {rows.slice(0, 20).map((row, i) => {
                       const err = validateRow(row, i);
+                      const qr = qrStates[i];
                       return (
                         <TableRow key={i} className={err ? "bg-destructive/5" : ""}>
                           <TableCell className="font-mono text-sm">{row.numero_factura || "—"}</TableCell>
@@ -777,6 +851,23 @@ function ImportTab() {
                           <TableCell className="text-sm">{row.cliente_nif || "—"}</TableCell>
                           <TableCell className="text-right text-sm">{row.base_imponible.toFixed(2)}€</TableCell>
                           <TableCell className="text-right text-sm">{row.total.toFixed(2)}€</TableCell>
+                          <TableCell>
+                            {err ? (
+                              <Badge variant="outline" className="text-muted-foreground text-[10px]">—</Badge>
+                            ) : qr?.status === "ready" ? (
+                              <Badge className="bg-primary/10 text-primary border-primary/20 text-[10px]" title={qr.huella}>
+                                <QrCode className="h-3 w-3 mr-1" />QR listo
+                              </Badge>
+                            ) : qr?.status === "error" ? (
+                              <Badge variant="destructive" className="text-[10px]" title={qr.error}>
+                                <ShieldAlert className="h-3 w-3 mr-1" />Error
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-[10px]">
+                                <Loader2 className="h-3 w-3 mr-1 animate-spin" />…
+                              </Badge>
+                            )}
+                          </TableCell>
                         </TableRow>
                       );
                     })}
@@ -796,9 +887,9 @@ function ImportTab() {
               )}
 
               <div className="flex gap-2">
-                <Button onClick={handleImport} disabled={importing || !!result || validCount === 0}>
+                <Button onClick={handleImport} disabled={importing || !!result || importableCount === 0}>
                   {importing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-                  Importar {validCount} facturas
+                  Importar {importableCount} facturas
                 </Button>
                 {(result || rows.length > 0) && (
                   <Button variant="outline" onClick={() => { setFile(null); reset(); if (fileRef.current) fileRef.current.value = ""; }}>
