@@ -58,16 +58,77 @@ function facturasToJSON(facturas: Factura[]): string {
   );
 }
 
-function parseCSV(text: string): Record<string, string>[] {
-  const lines = text.trim().split("\n");
-  if (lines.length < 2) return [];
-  const headers = lines[0].split(",").map(h => h.replace(/"/g, "").trim());
-  return lines.slice(1).map(line => {
-    const values = line.match(/(".*?"|[^",]+)/g)?.map(v => v.replace(/"/g, "").trim()) ?? [];
+// Robust CSV parser: handles BOM, CR/LF, quoted fields, escaped quotes ("")
+// and auto-detects delimiter (',' or ';').
+function parseCSV(rawText: string): Record<string, string>[] {
+  // Strip UTF-8 BOM
+  let text = rawText.replace(/^\uFEFF/, "");
+  if (!text.trim()) return [];
+
+  // Detect delimiter from header line
+  const firstLineEnd = text.search(/\r?\n/);
+  const headerLine = firstLineEnd === -1 ? text : text.slice(0, firstLineEnd);
+  const semiCount = (headerLine.match(/;/g) || []).length;
+  const commaCount = (headerLine.match(/,/g) || []).length;
+  const delim = semiCount > commaCount ? ";" : ",";
+
+  const rows: string[][] = [];
+  let current: string[] = [];
+  let field = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else { inQuotes = false; }
+      } else {
+        field += ch;
+      }
+    } else {
+      if (ch === '"') inQuotes = true;
+      else if (ch === delim) { current.push(field); field = ""; }
+      else if (ch === "\n" || ch === "\r") {
+        if (ch === "\r" && text[i + 1] === "\n") i++;
+        current.push(field); field = "";
+        if (current.some(c => c !== "")) rows.push(current);
+        current = [];
+      } else {
+        field += ch;
+      }
+    }
+  }
+  // flush
+  if (field !== "" || current.length) {
+    current.push(field);
+    if (current.some(c => c !== "")) rows.push(current);
+  }
+
+  if (rows.length < 2) return [];
+  const headers = rows[0].map(h => h.replace(/^\uFEFF/, "").trim().toLowerCase());
+  return rows.slice(1).map(values => {
     const obj: Record<string, string> = {};
-    headers.forEach((h, i) => { obj[h] = values[i] ?? ""; });
+    headers.forEach((h, i) => { obj[h] = (values[i] ?? "").trim(); });
     return obj;
   });
+}
+
+// Parse number tolerating European format ("1.234,56" or "1234,56" or "1234.56")
+function parseNum(v: unknown): number {
+  if (v === null || v === undefined || v === "") return 0;
+  let s = String(v).trim().replace(/\s|€|EUR/gi, "");
+  if (s === "") return 0;
+  const hasComma = s.includes(",");
+  const hasDot = s.includes(".");
+  if (hasComma && hasDot) {
+    // Assume '.' = thousands, ',' = decimal
+    s = s.replace(/\./g, "").replace(",", ".");
+  } else if (hasComma) {
+    s = s.replace(",", ".");
+  }
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : 0;
 }
 
 // ─── Export component ───────────────────────────────────────
