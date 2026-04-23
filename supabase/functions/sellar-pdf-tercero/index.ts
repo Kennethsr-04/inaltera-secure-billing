@@ -217,7 +217,7 @@ Deno.serve(async (req) => {
     const { error: dbError } = await supabase.from("facturas").insert({
       user_id: user.id,
       numero_factura: numeroFactura,
-      tipo: "tercero",
+      tipo: "completa",
       origen: "cargada",
       cliente_nombre: clienteNombre || pdfFile.name.replace(".pdf", ""),
       cliente_nif: clienteNif || "N/A",
