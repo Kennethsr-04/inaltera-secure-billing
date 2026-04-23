@@ -582,7 +582,7 @@ function ImportTab() {
 
     const reader = new FileReader();
     reader.onerror = () => toast.error("No se pudo leer el archivo");
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       const text = (ev.target?.result as string) ?? "";
       let normalized: NormalizedRow[] = [];
 
@@ -612,19 +612,55 @@ function ImportTab() {
 
       setRows(normalized);
       setValidationErrors(errs);
-      if (errs.length > 0) {
-        toast.warning(`${normalized.length} registros leídos · ${errs.length} con errores`);
+
+      // Pre-compute huella SHA-256 + QR URL for each row so the table can
+      // show "QR listo" status before the actual import.
+      const { data: { user } } = await supabase.auth.getUser();
+      const baseTs = Date.now();
+      const initial: RowQr[] = normalized.map(() => ({ status: "pending" }));
+      setQrStates(initial);
+
+      const computed: RowQr[] = [];
+      const qrErrs: string[] = [];
+      for (let i = 0; i < normalized.length; i++) {
+        const r = normalized[i];
+        if (validateRow(r, i)) {
+          // Skip rows that won't be imported anyway
+          computed.push({ status: "pending" });
+          continue;
+        }
+        try {
+          const numero = r.numero_factura || `IMP-${baseTs}-${i}`;
+          const rowForHash: NormalizedRow = { ...r, numero_factura: numero };
+          const huella = await generarHuellaImportada(rowForHash, user?.id ?? "anon");
+          const qrUrl = buildQrUrl(huella);
+          computed.push({ status: "ready", huella, qrUrl });
+        } catch (err: any) {
+          const msg = `Fila ${i + 1} (${r.numero_factura || "sin nº"}): no se pudo calcular la huella — ${err?.message ?? "error desconocido"}`;
+          qrErrs.push(msg);
+          console.error("QR generation error", err);
+          computed.push({ status: "error", error: err?.message ?? "Error desconocido" });
+        }
+      }
+      setQrStates(computed);
+      setQrErrors(qrErrs);
+
+      const readyCount = computed.filter(s => s.status === "ready").length;
+      if (errs.length > 0 || qrErrs.length > 0) {
+        toast.warning(`${normalized.length} leídos · ${readyCount} con QR listo · ${errs.length + qrErrs.length} con errores`);
       } else {
-        toast.success(`${normalized.length} registros listos para importar`);
+        toast.success(`${normalized.length} registros listos para importar (QR generado)`);
       }
     };
     reader.readAsText(f, "utf-8");
   };
 
   const handleImport = async () => {
-    const validRows = rows.filter((r, i) => !validateRow(r, i));
-    if (validRows.length === 0) {
-      toast.error("No hay filas válidas para importar");
+    const validIndices = rows
+      .map((r, i) => ({ r, i }))
+      .filter(({ r, i }) => !validateRow(r, i) && qrStates[i]?.status === "ready");
+    if (validIndices.length === 0) {
+      toast.error("No hay filas válidas con QR listo para importar");
       return;
     }
     setImporting(true);
@@ -639,34 +675,30 @@ function ImportTab() {
     const messages: string[] = [];
     const baseTs = Date.now();
 
-    for (let i = 0; i < validRows.length; i += CHUNK) {
-      const slice = validRows.slice(i, i + CHUNK);
-      const chunk = await Promise.all(
-        slice.map(async (r, k) => {
-          const numero = r.numero_factura || `IMP-${baseTs}-${i + k}`;
-          const rowForHash: NormalizedRow = { ...r, numero_factura: numero };
-          const huella = await generarHuellaImportada(rowForHash, user.id);
-          const qrUrl = buildQrUrl(huella);
-          return {
-            user_id: user.id,
-            numero_factura: numero,
-            tipo: r.tipo,
-            origen: "importada",
-            cliente_nombre: r.cliente_nombre,
-            cliente_nif: r.cliente_nif,
-            cliente_direccion: r.cliente_direccion,
-            base_imponible: r.base_imponible,
-            total_iva: r.total_iva,
-            total_irpf: r.total_irpf,
-            total_recargo: r.total_recargo,
-            total: r.total,
-            regimen_iva: r.regimen_iva,
-            estado: "importada",
-            huella_hash: huella,
-            qr_url: qrUrl,
-          };
-        })
-      );
+    for (let i = 0; i < validIndices.length; i += CHUNK) {
+      const slice = validIndices.slice(i, i + CHUNK);
+      const chunk = slice.map(({ r, i: idx }, k) => {
+        const numero = r.numero_factura || `IMP-${baseTs}-${i + k}`;
+        const qr = qrStates[idx];
+        return {
+          user_id: user.id,
+          numero_factura: numero,
+          tipo: r.tipo,
+          origen: "importada",
+          cliente_nombre: r.cliente_nombre,
+          cliente_nif: r.cliente_nif,
+          cliente_direccion: r.cliente_direccion,
+          base_imponible: r.base_imponible,
+          total_iva: r.total_iva,
+          total_irpf: r.total_irpf,
+          total_recargo: r.total_recargo,
+          total: r.total,
+          regimen_iva: r.regimen_iva,
+          estado: "importada",
+          huella_hash: qr.huella!,
+          qr_url: qr.qrUrl!,
+        };
+      });
 
       const { error, data } = await supabase.from("facturas").insert(chunk).select("id");
       if (error) {
@@ -679,7 +711,7 @@ function ImportTab() {
       } else {
         success += data?.length ?? chunk.length;
       }
-      setProgress(Math.round(((i + chunk.length) / validRows.length) * 100));
+      setProgress(Math.round(((i + chunk.length) / validIndices.length) * 100));
     }
 
     setResult({ success, errors, messages: messages.slice(0, 5) });
