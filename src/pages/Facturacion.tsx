@@ -322,28 +322,30 @@ export default function Facturacion() {
   // QR result state
   const [qrResult, setQrResult] = useState<QrResultData | null>(null);
 
-  const addLinea = () => setLineas([...lineas, emptyLinea()]);
-  const removeLinea = (id: string) => {
-    if (lineas.length <= 1) return;
-    setLineas(lineas.filter((l) => l.id !== id));
-  };
+  const addLinea = useCallback(() => setLineas((prev) => [...prev, emptyLinea()]), []);
+  const removeLinea = useCallback((id: string) => {
+    setLineas((prev) => (prev.length <= 1 ? prev : prev.filter((l) => l.id !== id)));
+  }, []);
 
-  const updateLinea = (id: string, field: keyof LineaFactura, value: any) => {
-    setLineas(lineas.map((l) => (l.id === id ? { ...l, [field]: value } : l)));
-  };
+  const updateLinea = useCallback((id: string, field: keyof LineaFactura, value: any) => {
+    setLineas((prev) => prev.map((l) => (l.id === id ? { ...l, [field]: value } : l)));
+  }, []);
 
-  const selectProducto = (lineaId: string, servicioId: string) => {
-    const svc = servicios.find((s) => s.id === servicioId);
-    if (svc) {
-      setLineas(
-        lineas.map((l) =>
-          l.id === lineaId
-            ? { ...l, productoId: servicioId, descripcion: svc.nombre + (svc.descripcion ? ` - ${svc.descripcion}` : ""), precioUnitario: svc.precio, tipoIva: svc.iva }
-            : l
-        )
-      );
-    }
-  };
+  // Keep ref of services so selectProducto can stay stable
+  const serviciosRef = useRef(servicios);
+  useEffect(() => { serviciosRef.current = servicios; }, [servicios]);
+
+  const selectProducto = useCallback((lineaId: string, servicioId: string) => {
+    const svc = serviciosRef.current.find((s) => s.id === servicioId);
+    if (!svc) return;
+    setLineas((prev) =>
+      prev.map((l) =>
+        l.id === lineaId
+          ? { ...l, productoId: servicioId, descripcion: svc.nombre + (svc.descripcion ? ` - ${svc.descripcion}` : ""), precioUnitario: svc.precio, tipoIva: svc.iva }
+          : l
+      )
+    );
+  }, []);
 
   const totales = useMemo(() => {
     let baseImponible = 0;
