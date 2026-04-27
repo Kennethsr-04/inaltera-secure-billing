@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { EstadoBadge, EstadoTimeline, ESTADOS, type EstadoLog } from "@/components/factura/EstadoTimeline";
+import { RegistroFacturaCard } from "@/components/factura/RegistroFacturaCard";
 import { CambiarEstadoDialog } from "@/components/factura/CambiarEstadoDialog";
 
 type Factura = Tables<"facturas">;
