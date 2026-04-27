@@ -610,18 +610,20 @@ export default function Facturacion() {
       </div>
 
       <Tabs defaultValue="elaborar" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="elaborar" className="gap-2">
+        <TabsList className="w-full justify-start overflow-x-auto sm:w-auto">
+          <TabsTrigger value="elaborar" className="gap-2 shrink-0">
             <FilePlus className="h-4 w-4" />
-            Elaborar Factura
+            <span className="hidden sm:inline">Elaborar Factura</span>
+            <span className="sm:hidden">Elaborar</span>
           </TabsTrigger>
-          <TabsTrigger value="cargar" className="gap-2">
+          <TabsTrigger value="cargar" className="gap-2 shrink-0">
             <Upload className="h-4 w-4" />
             Cargar
           </TabsTrigger>
-          <TabsTrigger value="registro" className="gap-2">
+          <TabsTrigger value="registro" className="gap-2 shrink-0">
             <ClipboardList className="h-4 w-4" />
-            Registro de Facturas
+            <span className="hidden sm:inline">Registro de Facturas</span>
+            <span className="sm:hidden">Registro</span>
           </TabsTrigger>
         </TabsList>
 
