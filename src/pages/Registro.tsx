@@ -57,7 +57,7 @@ export default function RegistroFacturas() {
 
   useEffect(() => { fetchFacturas(); }, [fetchFacturas]);
 
-  const moveToTrash = async (factura: Factura) => {
+  const moveToTrash = useCallback(async (factura: Factura) => {
     const { error } = await supabase
       .from("facturas")
       .update({ deleted_at: new Date().toISOString() } as any)
@@ -68,7 +68,7 @@ export default function RegistroFacturas() {
       toast.success(`Factura ${factura.numero_factura} movida a la papelera`);
       fetchFacturas();
     }
-  };
+  }, [fetchFacturas]);
 
   const handleCambiarEstado = async (nuevoEstado: string, nota: string) => {
     if (!cambiarEstadoFactura) return;
@@ -91,7 +91,7 @@ export default function RegistroFacturas() {
     fetchFacturas();
   };
 
-  const openHistorial = async (factura: Factura) => {
+  const openHistorial = useCallback(async (factura: Factura) => {
     setHistorialFactura(factura);
     setLoadingHistorial(true);
     const { data } = await supabase
@@ -101,7 +101,10 @@ export default function RegistroFacturas() {
       .order("created_at", { ascending: false });
     setHistorialLogs((data as EstadoLog[]) || []);
     setLoadingHistorial(false);
-  };
+  }, []);
+
+  const askChangeEstado = useCallback((f: Factura) => setCambiarEstadoFactura(f), []);
+  const askShowQr = useCallback((f: Factura) => setSelectedQr(f), []);
 
   const filtered = useMemo(() => {
     return facturas.filter((f) => {
@@ -117,7 +120,7 @@ export default function RegistroFacturas() {
     });
   }, [facturas, search, dateFrom, dateTo, estadoFilter]);
 
-  const downloadPdf = async (factura: Factura) => {
+  const downloadPdf = useCallback(async (factura: Factura) => {
     if (!factura.pdf_path) {
       toast.error("PDF no disponible");
       return;
@@ -135,9 +138,9 @@ export default function RegistroFacturas() {
     a.download = `factura-${factura.numero_factura.replace(/\//g, "-")}.pdf`;
     a.click();
     URL.revokeObjectURL(url);
-  };
+  }, []);
 
-  const viewPdf = async (factura: Factura) => {
+  const viewPdf = useCallback(async (factura: Factura) => {
     if (!factura.pdf_path) {
       toast.error("PDF no disponible");
       return;
@@ -157,7 +160,7 @@ export default function RegistroFacturas() {
     const url = URL.createObjectURL(data);
     setPreviewPdfUrl(url);
     setLoadingPreview(false);
-  };
+  }, []);
 
   const closePreview = () => {
     if (previewPdfUrl) URL.revokeObjectURL(previewPdfUrl);
