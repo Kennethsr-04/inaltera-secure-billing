@@ -96,45 +96,86 @@ export default function Papelera() {
               <p>La papelera está vacía</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Fecha emisión</TableHead>
-                    <TableHead>Número</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead className="text-right">Total (€)</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Eliminada el</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {facturas.map((f) => (
-                    <TableRow key={f.id} className="opacity-75">
-                      <TableCell className="text-sm">{format(new Date(f.created_at), "dd/MM/yyyy")}</TableCell>
-                      <TableCell className="font-mono text-sm">{f.numero_factura}</TableCell>
-                      <TableCell className="text-sm">{f.cliente_nombre}</TableCell>
-                      <TableCell className="text-right font-medium">{Number(f.total).toFixed(2)}</TableCell>
-                      <TableCell><EstadoBadge estado={f.estado} /></TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {(f as any).deleted_at ? format(new Date((f as any).deleted_at), "dd/MM/yyyy HH:mm") : "—"}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary" title="Restaurar" onClick={() => restore(f)}>
-                            <RotateCcw className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Eliminar permanentemente" onClick={() => setConfirmDelete(f)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+            <>
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fecha emisión</TableHead>
+                      <TableHead>Número</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead className="text-right">Total (€)</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Eliminada el</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {facturas.map((f) => (
+                      <TableRow key={f.id} className="opacity-75">
+                        <TableCell className="text-sm">{format(new Date(f.created_at), "dd/MM/yyyy")}</TableCell>
+                        <TableCell className="font-mono text-sm">{f.numero_factura}</TableCell>
+                        <TableCell className="text-sm">{f.cliente_nombre}</TableCell>
+                        <TableCell className="text-right font-medium">{Number(f.total).toFixed(2)}</TableCell>
+                        <TableCell><EstadoBadge estado={f.estado} /></TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {(f as any).deleted_at ? format(new Date((f as any).deleted_at), "dd/MM/yyyy HH:mm") : "—"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary" title="Restaurar" onClick={() => restore(f)}>
+                              <RotateCcw className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Eliminar permanentemente" onClick={() => setConfirmDelete(f)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="md:hidden space-y-3">
+                {facturas.map((f) => (
+                  <div key={f.id} className="rounded-lg border bg-card p-4 space-y-3 opacity-90">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-mono text-sm font-medium">{f.numero_factura}</p>
+                        <p className="text-sm text-muted-foreground truncate mt-0.5">{f.cliente_nombre}</p>
+                      </div>
+                      <EstadoBadge estado={f.estado} />
+                    </div>
+                    <div className="flex items-center justify-between text-sm pt-2 border-t">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Emitida</p>
+                        <p>{format(new Date(f.created_at), "dd/MM/yyyy")}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">Total</p>
+                        <p className="font-semibold">{Number(f.total).toFixed(2)} €</p>
+                      </div>
+                    </div>
+                    {(f as any).deleted_at && (
+                      <p className="text-xs text-muted-foreground">
+                        Eliminada el {format(new Date((f as any).deleted_at), "dd/MM/yyyy HH:mm")}
+                      </p>
+                    )}
+                    <div className="flex gap-2 pt-2 border-t">
+                      <Button variant="outline" size="sm" className="flex-1 gap-2" onClick={() => restore(f)}>
+                        <RotateCcw className="h-4 w-4" /> Restaurar
+                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1 gap-2 text-destructive hover:text-destructive" onClick={() => setConfirmDelete(f)}>
+                        <Trash2 className="h-4 w-4" /> Eliminar
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
