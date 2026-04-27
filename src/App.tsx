@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,20 +9,28 @@ import { LayoutProvider } from "@/contexts/LayoutContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/AppLayout";
+import { Loader2 } from "lucide-react";
 import Login from "@/pages/Login";
-import Register from "@/pages/Register";
-import ForgotPassword from "@/pages/ForgotPassword";
-import ResetPassword from "@/pages/ResetPassword";
-import Perfil from "@/pages/Perfil";
-import Facturacion from "@/pages/Facturacion";
 
-import Datos from "@/pages/Datos";
-import Servicios from "@/pages/Servicios";
-import Papelera from "@/pages/Papelera";
-import VerificarFactura from "@/pages/VerificarFactura";
-import NotFound from "@/pages/NotFound";
+// Lazy load non-critical routes to keep initial bundle small (better mobile perf)
+const Register = lazy(() => import("@/pages/Register"));
+const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const Perfil = lazy(() => import("@/pages/Perfil"));
+const Facturacion = lazy(() => import("@/pages/Facturacion"));
+const Datos = lazy(() => import("@/pages/Datos"));
+const Servicios = lazy(() => import("@/pages/Servicios"));
+const Papelera = lazy(() => import("@/pages/Papelera"));
+const VerificarFactura = lazy(() => import("@/pages/VerificarFactura"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
 
 const queryClient = new QueryClient();
+
+const PageFallback = () => (
+  <div className="min-h-[50vh] flex items-center justify-center">
+    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -32,6 +41,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <LayoutProvider>
+          <Suspense fallback={<PageFallback />}>
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/registro-cuenta" element={<Register />} />
@@ -92,6 +102,7 @@ const App = () => (
             <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
           </LayoutProvider>
         </AuthProvider>
       </BrowserRouter>
