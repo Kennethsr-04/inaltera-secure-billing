@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
     const huella = await generarHuellaSHA256(huellaData);
 
     // Generate QR URL pointing to app verification page
-    const siteUrl = (payload.siteUrl || "").replace(/\/+$/, "");
+    const siteUrl = ((payload as any).siteUrl || "").replace(/\/+$/, "");
     const qrUrl = generarQrUrl(siteUrl, huella);
 
     // Generate QR code modules directly (no canvas needed in Deno)
@@ -278,7 +278,8 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error("Error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    const msg = err instanceof Error ? err.message : String(err);
+    return new Response(JSON.stringify({ error: msg }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
