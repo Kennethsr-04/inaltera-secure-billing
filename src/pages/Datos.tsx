@@ -917,6 +917,8 @@ function ConexionExternaTab() {
   const [saving, setSaving] = useState(false);
   const [conexiones, setConexiones] = useState<any[]>([]);
   const [loadingConexiones, setLoadingConexiones] = useState(true);
+  const [testingId, setTestingId] = useState<string | null>(null);
+  const [testResults, setTestResults] = useState<Record<string, { success: boolean; message: string; latency_ms?: number; details?: string }>>({});
 
   const fetchConexiones = async () => {
     setLoadingConexiones(true);
@@ -968,6 +970,38 @@ function ConexionExternaTab() {
   const handleToggle = async (id: string, activa: boolean) => {
     const { error } = await supabase.from("conexiones_bd").update({ activa: !activa } as any).eq("id", id);
     if (!error) fetchConexiones();
+  };
+
+  const handleTest = async (id: string) => {
+    setTestingId(id);
+    setTestResults((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    try {
+      const { data, error } = await supabase.functions.invoke("probar-conexion-bd", {
+        body: { conexionId: id },
+      });
+      if (error) {
+        setTestResults((prev) => ({
+          ...prev,
+          [id]: { success: false, message: "Error al invocar la prueba", details: error.message },
+        }));
+        toast.error("No se pudo probar la conexión");
+      } else {
+        setTestResults((prev) => ({ ...prev, [id]: data }));
+        if (data?.success) toast.success("Conexión exitosa");
+        else toast.error("Conexión fallida");
+      }
+    } catch (e: any) {
+      setTestResults((prev) => ({
+        ...prev,
+        [id]: { success: false, message: "Error inesperado", details: e?.message ?? String(e) },
+      }));
+    } finally {
+      setTestingId(null);
+    }
   };
 
   return (
@@ -1042,29 +1076,65 @@ function ConexionExternaTab() {
             <p className="text-sm text-muted-foreground text-center py-8">No hay conexiones guardadas</p>
           ) : (
             <div className="space-y-3">
-              {conexiones.map((c) => (
-                <div key={c.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Database className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="font-medium text-sm">{c.nombre}</p>
-                      <p className="text-xs text-muted-foreground">{c.tipo_bd} · {c.host}:{c.puerto} · {c.nombre_bd}</p>
+              {conexiones.map((c) => {
+                const result = testResults[c.id];
+                return (
+                  <div key={c.id} className="p-4 border rounded-lg space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Database className="h-5 w-5 text-primary" />
+                        <div>
+                          <p className="font-medium text-sm">{c.nombre}</p>
+                          <p className="text-xs text-muted-foreground">{c.tipo_bd} · {c.host}:{c.puerto} · {c.nombre_bd}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleTest(c.id)}
+                          disabled={testingId === c.id}
+                        >
+                          {testingId === c.id ? (
+                            <><Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> Probando...</>
+                          ) : (
+                            "Probar conexión"
+                          )}
+                        </Button>
+                        <Badge
+                          className={c.activa ? "bg-success/10 text-success border-success/20 cursor-pointer" : "cursor-pointer"}
+                          variant={c.activa ? "outline" : "secondary"}
+                          onClick={() => handleToggle(c.id, c.activa)}
+                        >
+                          {c.activa ? "Activa" : "Inactiva"}
+                        </Badge>
+                        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleDelete(c.id)}>
+                          ✕
+                        </Button>
+                      </div>
                     </div>
+                    {result && (
+                      <div
+                        className={`text-xs rounded-md p-3 border ${
+                          result.success
+                            ? "bg-success/10 text-success border-success/20"
+                            : "bg-destructive/10 text-destructive border-destructive/20"
+                        }`}
+                      >
+                        <p className="font-medium">
+                          {result.success ? "✓ " : "✗ "}{result.message}
+                          {typeof result.latency_ms === "number" && (
+                            <span className="opacity-70 ml-2">({result.latency_ms} ms)</span>
+                          )}
+                        </p>
+                        {result.details && (
+                          <p className="mt-1 opacity-80 break-words font-mono">{result.details}</p>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      className={c.activa ? "bg-success/10 text-success border-success/20 cursor-pointer" : "cursor-pointer"}
-                      variant={c.activa ? "outline" : "secondary"}
-                      onClick={() => handleToggle(c.id, c.activa)}
-                    >
-                      {c.activa ? "Activa" : "Inactiva"}
-                    </Badge>
-                    <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleDelete(c.id)}>
-                      ✕
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
