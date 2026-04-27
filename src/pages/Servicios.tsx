@@ -123,25 +123,54 @@ export default function Servicios() {
               <p className="text-sm">Crea tu primer servicio para empezar a facturar</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Descripción</TableHead>
-                  <TableHead className="text-right">Base Imponible (€)</TableHead>
-                  <TableHead className="text-right">IVA (%)</TableHead>
-                  <TableHead className="w-[100px]">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Desktop table */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nombre</TableHead>
+                      <TableHead>Descripción</TableHead>
+                      <TableHead className="text-right">Base Imponible (€)</TableHead>
+                      <TableHead className="text-right">IVA (%)</TableHead>
+                      <TableHead className="w-[100px]">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {servicios.map((s) => (
+                      <TableRow key={s.id}>
+                        <TableCell className="font-medium">{s.nombre}</TableCell>
+                        <TableCell className="text-muted-foreground">{s.descripcion || "—"}</TableCell>
+                        <TableCell className="text-right">{Number(s.precio).toFixed(2)}</TableCell>
+                        <TableCell className="text-right">{s.iva}%</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(s)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)} className="text-destructive hover:text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="md:hidden space-y-3">
                 {servicios.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell className="font-medium">{s.nombre}</TableCell>
-                    <TableCell className="text-muted-foreground">{s.descripcion || "—"}</TableCell>
-                    <TableCell className="text-right">{Number(s.precio).toFixed(2)}</TableCell>
-                    <TableCell className="text-right">{s.iva}%</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
+                  <div key={s.id} className="rounded-lg border bg-card p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium truncate">{s.nombre}</p>
+                        {s.descripcion && (
+                          <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{s.descripcion}</p>
+                        )}
+                      </div>
+                      <div className="flex gap-1 shrink-0">
                         <Button variant="ghost" size="icon" onClick={() => openEdit(s)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -149,11 +178,21 @@ export default function Servicios() {
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                    <div className="flex items-center justify-between text-sm pt-2 border-t">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Base Imponible</p>
+                        <p className="font-medium">{Number(s.precio).toFixed(2)} €</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">IVA</p>
+                        <p className="font-medium">{s.iva}%</p>
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

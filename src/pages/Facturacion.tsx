@@ -610,18 +610,20 @@ export default function Facturacion() {
       </div>
 
       <Tabs defaultValue="elaborar" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="elaborar" className="gap-2">
+        <TabsList className="w-full justify-start overflow-x-auto sm:w-auto">
+          <TabsTrigger value="elaborar" className="gap-2 shrink-0">
             <FilePlus className="h-4 w-4" />
-            Elaborar Factura
+            <span className="hidden sm:inline">Elaborar Factura</span>
+            <span className="sm:hidden">Elaborar</span>
           </TabsTrigger>
-          <TabsTrigger value="cargar" className="gap-2">
+          <TabsTrigger value="cargar" className="gap-2 shrink-0">
             <Upload className="h-4 w-4" />
             Cargar
           </TabsTrigger>
-          <TabsTrigger value="registro" className="gap-2">
+          <TabsTrigger value="registro" className="gap-2 shrink-0">
             <ClipboardList className="h-4 w-4" />
-            Registro de Facturas
+            <span className="hidden sm:inline">Registro de Facturas</span>
+            <span className="sm:hidden">Registro</span>
           </TabsTrigger>
         </TabsList>
 
@@ -680,7 +682,8 @@ export default function Facturacion() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
+                {/* Desktop table */}
+                <div className="hidden md:block overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -813,6 +816,135 @@ export default function Facturacion() {
                     </TableBody>
                   </Table>
                 </div>
+
+                {/* Mobile cards */}
+                <div className="md:hidden space-y-3">
+                  {lineas.map((linea, idx) => {
+                    const subtotal =
+                      linea.cantidad * linea.precioUnitario * (1 - linea.descuento / 100);
+                    return (
+                      <div key={linea.id} className="rounded-lg border bg-card p-3 space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-medium text-muted-foreground">Línea {idx + 1}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => removeLinea(linea.id)}
+                            disabled={lineas.length <= 1}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Producto / Descripción</Label>
+                          <Select
+                            value={linea.productoId}
+                            onValueChange={(v) => selectProducto(linea.id, v)}
+                          >
+                            <SelectTrigger className="h-9 text-sm">
+                              <SelectValue placeholder="Seleccionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {servicios.map((s) => (
+                                <SelectItem key={s.id} value={s.id}>
+                                  {s.nombre}{s.descripcion ? ` - ${s.descripcion}` : ""} ({s.precio.toFixed(2)}€)
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Cant.</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              className="h-9 text-sm"
+                              value={linea.cantidad}
+                              onChange={(e) =>
+                                updateLinea(linea.id, "cantidad", Number(e.target.value))
+                              }
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Base Imponible</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              className="h-9 text-sm"
+                              value={linea.precioUnitario}
+                              onChange={(e) =>
+                                updateLinea(linea.id, "precioUnitario", Number(e.target.value))
+                              }
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Dto. %</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              className="h-9 text-sm"
+                              value={linea.descuento}
+                              onChange={(e) =>
+                                updateLinea(linea.id, "descuento", Number(e.target.value))
+                              }
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">IVA %</Label>
+                            <Select
+                              value={String(linea.tipoIva)}
+                              onValueChange={(v) => updateLinea(linea.id, "tipoIva", Number(v))}
+                            >
+                              <SelectTrigger className="h-9 text-sm">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="21">21%</SelectItem>
+                                <SelectItem value="10">10%</SelectItem>
+                                <SelectItem value="4">4%</SelectItem>
+                                <SelectItem value="0">0%</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">IRPF %</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              className="h-9 text-sm"
+                              value={linea.irpf}
+                              onChange={(e) =>
+                                updateLinea(linea.id, "irpf", Number(e.target.value))
+                              }
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">R.E. %</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              className="h-9 text-sm"
+                              value={linea.recargoEquivalencia}
+                              onChange={(e) =>
+                                updateLinea(linea.id, "recargoEquivalencia", Number(e.target.value))
+                              }
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t">
+                          <span className="text-sm text-muted-foreground">Subtotal</span>
+                          <span className="font-semibold">{subtotal.toFixed(2)}€</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </CardContent>
             </Card>
 
@@ -877,22 +1009,26 @@ export default function Facturacion() {
 
         <TabsContent value="cargar">
           <Tabs defaultValue="pdf" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="pdf" className="gap-2">
+            <TabsList className="w-full justify-start overflow-x-auto sm:w-auto">
+              <TabsTrigger value="pdf" className="gap-2 shrink-0">
                 <FileUp className="h-4 w-4" />
-                Cargar PDF
+                <span className="hidden sm:inline">Cargar PDF</span>
+                <span className="sm:hidden">PDF</span>
               </TabsTrigger>
-              <TabsTrigger value="bloque" className="gap-2">
+              <TabsTrigger value="bloque" className="gap-2 shrink-0">
                 <Layers className="h-4 w-4" />
-                Carga en Bloque
+                <span className="hidden sm:inline">Carga en Bloque</span>
+                <span className="sm:hidden">Bloque</span>
               </TabsTrigger>
-              <TabsTrigger value="csv" className="gap-2">
+              <TabsTrigger value="csv" className="gap-2 shrink-0">
                 <FileSpreadsheet className="h-4 w-4" />
-                Cargar CSV
+                <span className="hidden sm:inline">Cargar CSV</span>
+                <span className="sm:hidden">CSV</span>
               </TabsTrigger>
-              <TabsTrigger value="json" className="gap-2">
+              <TabsTrigger value="json" className="gap-2 shrink-0">
                 <FileJson className="h-4 w-4" />
-                Cargar JSON
+                <span className="hidden sm:inline">Cargar JSON</span>
+                <span className="sm:hidden">JSON</span>
               </TabsTrigger>
             </TabsList>
 

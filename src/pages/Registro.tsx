@@ -282,82 +282,148 @@ export default function RegistroFacturas() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Número</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead className="text-right">Total (€)</TableHead>
-                    <TableHead>QR Tributario</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((f) => (
-                    <TableRow key={f.id}>
-                      <TableCell className="text-sm">{format(new Date(f.created_at), "dd/MM/yyyy")}</TableCell>
-                      <TableCell>
-                        <EstadoBadge estado={f.origen === "elaborada" ? "emitida" : "cargada"} />
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">{f.numero_factura}</TableCell>
-                      <TableCell className="text-sm">{f.cliente_nombre}</TableCell>
-                      <TableCell className="text-right font-medium">{Number(f.total).toFixed(2)}</TableCell>
-                      <TableCell>
-                        {f.qr_url ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="gap-1.5 text-primary hover:text-primary"
-                            onClick={() => setSelectedQr(f)}
-                          >
-                            <QrCode className="h-4 w-4" />
-                            Ver QR
-                          </Button>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <EstadoBadge estado={f.estado} />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver PDF" onClick={() => viewPdf(f)} disabled={!f.pdf_path}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Cambiar estado" onClick={() => setCambiarEstadoFactura(f)}>
-                            <ArrowRightLeft className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver historial" onClick={() => openHistorial(f)}>
-                            <History className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Descargar PDF con QR" onClick={() => downloadPdf(f)}>
-                            <FileText className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" title="Descargar registro JSON" onClick={() => downloadJson(f)}>
-                            <FileCode className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Mover a papelera" onClick={() => moveToTrash(f)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {filtered.length === 0 && (
+            <>
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                        No se encontraron facturas
-                      </TableCell>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Número</TableHead>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead className="text-right">Total (€)</TableHead>
+                      <TableHead>QR Tributario</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((f) => (
+                      <TableRow key={f.id}>
+                        <TableCell className="text-sm">{format(new Date(f.created_at), "dd/MM/yyyy")}</TableCell>
+                        <TableCell>
+                          <EstadoBadge estado={f.origen === "elaborada" ? "emitida" : "cargada"} />
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">{f.numero_factura}</TableCell>
+                        <TableCell className="text-sm">{f.cliente_nombre}</TableCell>
+                        <TableCell className="text-right font-medium">{Number(f.total).toFixed(2)}</TableCell>
+                        <TableCell>
+                          {f.qr_url ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1.5 text-primary hover:text-primary"
+                              onClick={() => setSelectedQr(f)}
+                            >
+                              <QrCode className="h-4 w-4" />
+                              Ver QR
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <EstadoBadge estado={f.estado} />
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver PDF" onClick={() => viewPdf(f)} disabled={!f.pdf_path}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Cambiar estado" onClick={() => setCambiarEstadoFactura(f)}>
+                              <ArrowRightLeft className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Ver historial" onClick={() => openHistorial(f)}>
+                              <History className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Descargar PDF con QR" onClick={() => downloadPdf(f)}>
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Descargar registro JSON" onClick={() => downloadJson(f)}>
+                              <FileCode className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Mover a papelera" onClick={() => moveToTrash(f)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {filtered.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          No se encontraron facturas
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="md:hidden space-y-3">
+                {filtered.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground text-sm">No se encontraron facturas</p>
+                ) : (
+                  filtered.map((f) => (
+                    <div key={f.id} className="rounded-lg border bg-card p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-mono text-sm font-medium">{f.numero_factura}</p>
+                          <p className="text-sm text-muted-foreground truncate mt-0.5">{f.cliente_nombre}</p>
+                        </div>
+                        <EstadoBadge estado={f.estado} />
+                      </div>
+                      <div className="flex items-center justify-between text-sm pt-2 border-t">
+                        <div>
+                          <p className="text-xs text-muted-foreground">Fecha</p>
+                          <p>{format(new Date(f.created_at), "dd/MM/yyyy")}</p>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-xs text-muted-foreground">Tipo</p>
+                          <EstadoBadge estado={f.origen === "elaborada" ? "emitida" : "cargada"} />
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">Total</p>
+                          <p className="font-semibold">{Number(f.total).toFixed(2)} €</p>
+                        </div>
+                      </div>
+                      {f.qr_url && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full gap-2 text-primary hover:text-primary"
+                          onClick={() => setSelectedQr(f)}
+                        >
+                          <QrCode className="h-4 w-4" /> Ver QR Tributario
+                        </Button>
+                      )}
+                      <div className="grid grid-cols-3 gap-2 pt-2 border-t">
+                        <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => viewPdf(f)} disabled={!f.pdf_path}>
+                          <Eye className="h-4 w-4" /> Ver
+                        </Button>
+                        <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => setCambiarEstadoFactura(f)}>
+                          <ArrowRightLeft className="h-4 w-4" /> Estado
+                        </Button>
+                        <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => openHistorial(f)}>
+                          <History className="h-4 w-4" /> Historial
+                        </Button>
+                        <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => downloadPdf(f)}>
+                          <FileText className="h-4 w-4" /> PDF
+                        </Button>
+                        <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => downloadJson(f)}>
+                          <FileCode className="h-4 w-4" /> JSON
+                        </Button>
+                        <Button variant="ghost" size="sm" className="gap-1.5 text-destructive hover:text-destructive" onClick={() => moveToTrash(f)}>
+                          <Trash2 className="h-4 w-4" /> Borrar
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
