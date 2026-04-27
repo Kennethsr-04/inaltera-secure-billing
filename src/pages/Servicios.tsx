@@ -54,11 +54,11 @@ export default function Servicios() {
     setDialogOpen(true);
   };
 
-  const openEdit = (s: Servicio) => {
+  const openEdit = useCallback((s: Servicio) => {
     setEditing(s);
     setForm({ nombre: s.nombre, descripcion: s.descripcion, precio: s.precio, iva: s.iva });
     setDialogOpen(true);
-  };
+  }, []);
 
   const handleSave = async () => {
     if (!form.nombre.trim()) { toast.error("El nombre es obligatorio"); return; }
@@ -88,12 +88,12 @@ export default function Servicios() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = useCallback(async (id: string) => {
     const { error } = await supabase.from("servicios").delete().eq("id", id);
     if (error) { toast.error("Error al eliminar"); return; }
     toast.success("Servicio eliminado");
     loadServicios();
-  };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -163,34 +163,7 @@ export default function Servicios() {
               {/* Mobile cards */}
               <div className="md:hidden space-y-3">
                 {servicios.map((s) => (
-                  <div key={s.id} className="rounded-lg border bg-card p-4 space-y-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium truncate">{s.nombre}</p>
-                        {s.descripcion && (
-                          <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">{s.descripcion}</p>
-                        )}
-                      </div>
-                      <div className="flex gap-1 shrink-0">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(s)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(s.id)} className="text-destructive hover:text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between text-sm pt-2 border-t">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Base Imponible</p>
-                        <p className="font-medium">{Number(s.precio).toFixed(2)} €</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-muted-foreground">IVA</p>
-                        <p className="font-medium">{s.iva}%</p>
-                      </div>
-                    </div>
-                  </div>
+                  <ServicioCard key={s.id} servicio={s} onEdit={openEdit} onDelete={handleDelete} />
                 ))}
               </div>
             </>
