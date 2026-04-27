@@ -1009,22 +1009,26 @@ export default function Facturacion() {
 
         <TabsContent value="cargar">
           <Tabs defaultValue="pdf" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="pdf" className="gap-2">
+            <TabsList className="w-full justify-start overflow-x-auto sm:w-auto">
+              <TabsTrigger value="pdf" className="gap-2 shrink-0">
                 <FileUp className="h-4 w-4" />
-                Cargar PDF
+                <span className="hidden sm:inline">Cargar PDF</span>
+                <span className="sm:hidden">PDF</span>
               </TabsTrigger>
-              <TabsTrigger value="bloque" className="gap-2">
+              <TabsTrigger value="bloque" className="gap-2 shrink-0">
                 <Layers className="h-4 w-4" />
-                Carga en Bloque
+                <span className="hidden sm:inline">Carga en Bloque</span>
+                <span className="sm:hidden">Bloque</span>
               </TabsTrigger>
-              <TabsTrigger value="csv" className="gap-2">
+              <TabsTrigger value="csv" className="gap-2 shrink-0">
                 <FileSpreadsheet className="h-4 w-4" />
-                Cargar CSV
+                <span className="hidden sm:inline">Cargar CSV</span>
+                <span className="sm:hidden">CSV</span>
               </TabsTrigger>
-              <TabsTrigger value="json" className="gap-2">
+              <TabsTrigger value="json" className="gap-2 shrink-0">
                 <FileJson className="h-4 w-4" />
-                Cargar JSON
+                <span className="hidden sm:inline">Cargar JSON</span>
+                <span className="sm:hidden">JSON</span>
               </TabsTrigger>
             </TabsList>
 
