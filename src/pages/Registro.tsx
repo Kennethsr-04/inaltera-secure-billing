@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { EstadoBadge, EstadoTimeline, ESTADOS, type EstadoLog } from "@/components/factura/EstadoTimeline";
+import { RegistroFacturaCard } from "@/components/factura/RegistroFacturaCard";
 import { CambiarEstadoDialog } from "@/components/factura/CambiarEstadoDialog";
 
 type Factura = Tables<"facturas">;
@@ -57,7 +58,7 @@ export default function RegistroFacturas() {
 
   useEffect(() => { fetchFacturas(); }, [fetchFacturas]);
 
-  const moveToTrash = async (factura: Factura) => {
+  const moveToTrash = useCallback(async (factura: Factura) => {
     const { error } = await supabase
       .from("facturas")
       .update({ deleted_at: new Date().toISOString() } as any)
@@ -68,7 +69,7 @@ export default function RegistroFacturas() {
       toast.success(`Factura ${factura.numero_factura} movida a la papelera`);
       fetchFacturas();
     }
-  };
+  }, [fetchFacturas]);
 
   const handleCambiarEstado = async (nuevoEstado: string, nota: string) => {
     if (!cambiarEstadoFactura) return;
@@ -91,7 +92,7 @@ export default function RegistroFacturas() {
     fetchFacturas();
   };
 
-  const openHistorial = async (factura: Factura) => {
+  const openHistorial = useCallback(async (factura: Factura) => {
     setHistorialFactura(factura);
     setLoadingHistorial(true);
     const { data } = await supabase
@@ -101,7 +102,10 @@ export default function RegistroFacturas() {
       .order("created_at", { ascending: false });
     setHistorialLogs((data as EstadoLog[]) || []);
     setLoadingHistorial(false);
-  };
+  }, []);
+
+  const askChangeEstado = useCallback((f: Factura) => setCambiarEstadoFactura(f), []);
+  const askShowQr = useCallback((f: Factura) => setSelectedQr(f), []);
 
   const filtered = useMemo(() => {
     return facturas.filter((f) => {
@@ -117,7 +121,7 @@ export default function RegistroFacturas() {
     });
   }, [facturas, search, dateFrom, dateTo, estadoFilter]);
 
-  const downloadPdf = async (factura: Factura) => {
+  const downloadPdf = useCallback(async (factura: Factura) => {
     if (!factura.pdf_path) {
       toast.error("PDF no disponible");
       return;
@@ -135,9 +139,9 @@ export default function RegistroFacturas() {
     a.download = `factura-${factura.numero_factura.replace(/\//g, "-")}.pdf`;
     a.click();
     URL.revokeObjectURL(url);
-  };
+  }, []);
 
-  const viewPdf = async (factura: Factura) => {
+  const viewPdf = useCallback(async (factura: Factura) => {
     if (!factura.pdf_path) {
       toast.error("PDF no disponible");
       return;
@@ -157,7 +161,7 @@ export default function RegistroFacturas() {
     const url = URL.createObjectURL(data);
     setPreviewPdfUrl(url);
     setLoadingPreview(false);
-  };
+  }, []);
 
   const closePreview = () => {
     if (previewPdfUrl) URL.revokeObjectURL(previewPdfUrl);
@@ -165,7 +169,7 @@ export default function RegistroFacturas() {
     setPreviewPdfUrl(null);
   };
 
-  const downloadJson = (factura: Factura) => {
+  const downloadJson = useCallback((factura: Factura) => {
     const registro = {
       numero_factura: factura.numero_factura,
       tipo: factura.tipo,
@@ -197,7 +201,7 @@ export default function RegistroFacturas() {
     a.download = `registro-${factura.numero_factura.replace(/\//g, "-")}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -367,59 +371,17 @@ export default function RegistroFacturas() {
                   <p className="text-center py-8 text-muted-foreground text-sm">No se encontraron facturas</p>
                 ) : (
                   filtered.map((f) => (
-                    <div key={f.id} className="rounded-lg border bg-card p-4 space-y-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-mono text-sm font-medium">{f.numero_factura}</p>
-                          <p className="text-sm text-muted-foreground truncate mt-0.5">{f.cliente_nombre}</p>
-                        </div>
-                        <EstadoBadge estado={f.estado} />
-                      </div>
-                      <div className="flex items-center justify-between text-sm pt-2 border-t">
-                        <div>
-                          <p className="text-xs text-muted-foreground">Fecha</p>
-                          <p>{format(new Date(f.created_at), "dd/MM/yyyy")}</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-xs text-muted-foreground">Tipo</p>
-                          <EstadoBadge estado={f.origen === "elaborada" ? "emitida" : "cargada"} />
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-muted-foreground">Total</p>
-                          <p className="font-semibold">{Number(f.total).toFixed(2)} €</p>
-                        </div>
-                      </div>
-                      {f.qr_url && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full gap-2 text-primary hover:text-primary"
-                          onClick={() => setSelectedQr(f)}
-                        >
-                          <QrCode className="h-4 w-4" /> Ver QR Tributario
-                        </Button>
-                      )}
-                      <div className="grid grid-cols-3 gap-2 pt-2 border-t">
-                        <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => viewPdf(f)} disabled={!f.pdf_path}>
-                          <Eye className="h-4 w-4" /> Ver
-                        </Button>
-                        <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => setCambiarEstadoFactura(f)}>
-                          <ArrowRightLeft className="h-4 w-4" /> Estado
-                        </Button>
-                        <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => openHistorial(f)}>
-                          <History className="h-4 w-4" /> Historial
-                        </Button>
-                        <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => downloadPdf(f)}>
-                          <FileText className="h-4 w-4" /> PDF
-                        </Button>
-                        <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => downloadJson(f)}>
-                          <FileCode className="h-4 w-4" /> JSON
-                        </Button>
-                        <Button variant="ghost" size="sm" className="gap-1.5 text-destructive hover:text-destructive" onClick={() => moveToTrash(f)}>
-                          <Trash2 className="h-4 w-4" /> Borrar
-                        </Button>
-                      </div>
-                    </div>
+                    <RegistroFacturaCard
+                      key={f.id}
+                      factura={f}
+                      onShowQr={askShowQr}
+                      onViewPdf={viewPdf}
+                      onChangeEstado={askChangeEstado}
+                      onShowHistorial={openHistorial}
+                      onDownloadPdf={downloadPdf}
+                      onDownloadJson={downloadJson}
+                      onMoveToTrash={moveToTrash}
+                    />
                   ))
                 )}
               </div>
