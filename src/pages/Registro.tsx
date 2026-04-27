@@ -168,7 +168,7 @@ export default function RegistroFacturas() {
     setPreviewPdfUrl(null);
   };
 
-  const downloadJson = (factura: Factura) => {
+  const downloadJson = useCallback((factura: Factura) => {
     const registro = {
       numero_factura: factura.numero_factura,
       tipo: factura.tipo,
@@ -200,7 +200,7 @@ export default function RegistroFacturas() {
     a.download = `registro-${factura.numero_factura.replace(/\//g, "-")}.json`;
     a.click();
     URL.revokeObjectURL(url);
-  };
+  }, []);
 
   return (
     <div className="space-y-6">
