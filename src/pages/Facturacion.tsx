@@ -680,7 +680,8 @@ export default function Facturacion() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
+                {/* Desktop table */}
+                <div className="hidden md:block overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -812,6 +813,135 @@ export default function Facturacion() {
                       })}
                     </TableBody>
                   </Table>
+                </div>
+
+                {/* Mobile cards */}
+                <div className="md:hidden space-y-3">
+                  {lineas.map((linea, idx) => {
+                    const subtotal =
+                      linea.cantidad * linea.precioUnitario * (1 - linea.descuento / 100);
+                    return (
+                      <div key={linea.id} className="rounded-lg border bg-card p-3 space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-medium text-muted-foreground">Línea {idx + 1}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => removeLinea(linea.id)}
+                            disabled={lineas.length <= 1}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Producto / Descripción</Label>
+                          <Select
+                            value={linea.productoId}
+                            onValueChange={(v) => selectProducto(linea.id, v)}
+                          >
+                            <SelectTrigger className="h-9 text-sm">
+                              <SelectValue placeholder="Seleccionar..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {servicios.map((s) => (
+                                <SelectItem key={s.id} value={s.id}>
+                                  {s.nombre}{s.descripcion ? ` - ${s.descripcion}` : ""} ({s.precio.toFixed(2)}€)
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Cant.</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              className="h-9 text-sm"
+                              value={linea.cantidad}
+                              onChange={(e) =>
+                                updateLinea(linea.id, "cantidad", Number(e.target.value))
+                              }
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Base Imponible</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              className="h-9 text-sm"
+                              value={linea.precioUnitario}
+                              onChange={(e) =>
+                                updateLinea(linea.id, "precioUnitario", Number(e.target.value))
+                              }
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Dto. %</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              className="h-9 text-sm"
+                              value={linea.descuento}
+                              onChange={(e) =>
+                                updateLinea(linea.id, "descuento", Number(e.target.value))
+                              }
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">IVA %</Label>
+                            <Select
+                              value={String(linea.tipoIva)}
+                              onValueChange={(v) => updateLinea(linea.id, "tipoIva", Number(v))}
+                            >
+                              <SelectTrigger className="h-9 text-sm">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="21">21%</SelectItem>
+                                <SelectItem value="10">10%</SelectItem>
+                                <SelectItem value="4">4%</SelectItem>
+                                <SelectItem value="0">0%</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">IRPF %</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              className="h-9 text-sm"
+                              value={linea.irpf}
+                              onChange={(e) =>
+                                updateLinea(linea.id, "irpf", Number(e.target.value))
+                              }
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">R.E. %</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              max="100"
+                              className="h-9 text-sm"
+                              value={linea.recargoEquivalencia}
+                              onChange={(e) =>
+                                updateLinea(linea.id, "recargoEquivalencia", Number(e.target.value))
+                              }
+                            />
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t">
+                          <span className="text-sm text-muted-foreground">Subtotal</span>
+                          <span className="font-semibold">{subtotal.toFixed(2)}€</span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
