@@ -7,6 +7,7 @@ import { FileUp, Trash2, Loader2, CheckCircle2, XCircle, Play, RotateCcw, FileTe
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { safeUUID } from "@/lib/uuid";
 
 type ItemStatus = "pending" | "extracting" | "sealing" | "done" | "error";
 
@@ -36,7 +37,7 @@ export function BulkPdfUpload() {
     setItems((prev) => [
       ...prev,
       ...arr.map((file) => ({
-        id: crypto.randomUUID(),
+        id: safeUUID(),
         file,
         status: "pending" as ItemStatus,
       })),

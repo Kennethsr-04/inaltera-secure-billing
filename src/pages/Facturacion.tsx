@@ -19,6 +19,7 @@ import { LineaRow, LineaCard } from "@/components/factura/LineaItem";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
+import { safeUUID } from "@/lib/uuid";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -45,7 +46,7 @@ interface LineaFactura {
 }
 
 const emptyLinea = (): LineaFactura => ({
-  id: crypto.randomUUID(),
+  id: safeUUID(),
   productoId: "",
   descripcion: "",
   cantidad: 1,
